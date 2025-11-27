@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>컬러테라피, 나의 감정 팔레트 - 채아힐링센터</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            padding: 40px;
+        }
+        
+        /* Color Selection Screen */
+        .color-selection {
+            text-align: center;
+        }
+        
+        .instruction {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+            max-width: 450px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .color-item {
+            aspect-ratio: 1;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 4px solid transparent;
+            display: flex;
+            align-items: flex-end;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .color-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .color-item.selected {
+            border-color: #fff;
+            box-shadow: 0 0 0 4px #667eea;
+            transform: scale(1.05);
+        }
+        
+        .color-label {
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .white .color-label {
+            background: rgba(0,0,0,0.8);
+            color: white;
+        }
+        
+        .selection-counter {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: #666;
+        }
+        
+        .next-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        .next-btn.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .next-btn:hover.active {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* Results Screen */
+        .results {
+            display: none;
+            text-align: center;
+        }
+        
+        .results h2 {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        
+        .selected-colors {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .selected-color {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .word-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .word-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            overflow: hidden;
+            aspect-ratio: 3/4;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .word-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-color {
+            font-weight: bold;
+            font-size: 18px;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin: 0;
+        }
+        
+        .card-words {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            padding: 30px 20px;
+        }
+        
+        .word-tag {
+            background: #f8f9fa;
+            padding: 8px 15px;
+            border-radius: 25px;
+            font-size: 16px;
+            color: #555;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .word-tag.single-word {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+            border-radius: 12px;
+            color: #333;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .word-tag:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+        
+        .restart-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .restart-btn:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        /* Color definitions with bright gradients */
+        .red { background: linear-gradient(135deg, #fd0100, #ff4444); }
+        .yellow { background: linear-gradient(135deg, #ffde59, #fff082); }
+        .orange { background: linear-gradient(135deg, #ff9900, #ffbb33); }
+        .green { background: linear-gradient(135deg, #00b050, #33cc66); }
+        .cyan { background: linear-gradient(135deg, #38b6ff, #66ccff); }
+        .navy { background: linear-gradient(135deg, #0b0b92, #3333bb); }
+        .purple { background: linear-gradient(135deg, #631da2, #8844cc); }
+        .magenta { background: linear-gradient(135deg, #ff009d, #ff44bb); }
+        .pink { background: linear-gradient(135deg, #ff8fb3, #ffb3d6); }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+            
+            .color-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 15px;
+                max-width: 300px;
+            }
+            
+            .word-cards {
+                grid-template-columns: 1fr;
+                max-width: 300px;
+            }
+            
+            .word-card {
+                aspect-ratio: 2/3;
+            }
+            
+            .word-tag.single-word {
+                font-size: 20px;
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>컬러테라피, 나의 마음 읽기</h1>
+            <p>채아힐링센터 - 색채로 치유하는 마음의 여행</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- Color Selection Screen -->
+            <div class="color-selection" id="colorSelection">
+                <div class="instruction">
+                    지금 이 순간, 마음이 끌리는 색깔 3가지를 선택해주세요
+                </div>
+                
+                <div class="selection-counter" id="selectionCounter">
+                    선택된 색깔: 0/3
+                </div>
+                
+                <div class="color-grid">
+                    <div class="color-item red" data-color="red" data-name="레드">
+                        <div class="color-label">레드</div>
+                    </div>
+                    <div class="color-item yellow" data-color="yellow" data-name="옐로우">
+                        <div class="color-label">옐로우</div>
+                    </div>
+                    <div class="color-item orange" data-color="orange" data-name="오렌지">
+                        <div class="color-label">오렌지</div>
+                    </div>
+                    <div class="color-item green" data-color="green" data-name="그린">
+                        <div class="color-label">그린</div>
+                    </div>
+                    <div class="color-item cyan" data-color="cyan" data-name="시안">
+                        <div class="color-label">시안</div>
+                    </div>
+                    <div class="color-item navy" data-color="navy" data-name="네이비">
+                        <div class="color-label">네이비</div>
+                    </div>
+                    <div class="color-item purple" data-color="purple" data-name="퍼플">
+                        <div class="color-label">퍼플</div>
+                    </div>
+                    <div class="color-item magenta" data-color="magenta" data-name="마젠타">
+                        <div class="color-label">마젠타</div>
+                    </div>
+                    <div class="color-item pink" data-color="pink" data-name="핑크">
+                        <div class="color-label">핑크</div>
+                    </div>
+                </div>
+                
+                <button class="next-btn" id="nextBtn">다음</button>
+            </div>
+            
+            <!-- Results Screen -->
+            <div class="results" id="results">
+                <h2>당신이 선택한 색깔의 감정 단어들</h2>
+                
+                <div class="selected-colors" id="selectedColors"></div>
+                
+                <div class="word-cards" id="wordCards"></div>
+                
+                <button class="restart-btn" onclick="restart()">다시 시작하기</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Color data with all 10 words from PDF + 5 additional words (15 total per color)
+        const colorData = {
+            red: {
+                name: '레드',
+                words: ['활기찬', '목표있는', '짜릿한', '흥분된', '신나는', '도전하고픈', '용기있는', '의욕적인', '자신있는', '열정적인'],
+                additionalWords: ['강렬한', '적극적인', '에너지넘치는', '역동적인', '생기발랄한'],
+                bgColor: 'linear-gradient(135deg, #fd0100, #ff4444)'
+            },
+            yellow: {
+                name: '옐로우',
+                words: ['기쁜', '설레는', '희망에 찬', '두근거리는', '행복한', '긍정적인', '기대되는', '따스한', '밝은', '열린'],
+                additionalWords: ['창의적인', '명랑한', '희망찬', '활력있는', '쾌활한'],
+                bgColor: 'linear-gradient(135deg, #ffde59, #fff082)'
+            },
+            orange: {
+                name: '오렌지',
+                words: ['받아들이는', '유쾌한', '반가운', '호기심있는', '흥미있는', '센스있는', '친근한', '즐거운', '자유로운', '활기찬'],
+                additionalWords: ['따뜻한', '사교적인', '균형잡힌', '포근한', '편안한'],
+                bgColor: 'linear-gradient(135deg, #ff9900, #ffbb33)'
+            },
+            green: {
+                name: '그린',
+                words: ['긴장이 풀린', '평화로운', '감미로운', '느긋한', '흐뭇한', '잠잠해진', '조화로운', '안심되는', '진정되는', '편안한'],
+                additionalWords: ['치유하는', '자연스러운', '균형있는', '성장하는', '안정적인'],
+                bgColor: 'linear-gradient(135deg, #00b050, #33cc66)'
+            },
+            cyan: {
+                name: '시안',
+                words: ['평온한', '든든한', '개운한', '신뢰하는', '후련한', '차분한', '시원한', '신중한', '잘 되는', '끈기있는'],
+                additionalWords: ['맑은', '깨끗한', '상쾌한', '정화하는', '투명한'],
+                bgColor: 'linear-gradient(135deg, #38b6ff, #66ccff)'
+            },
+            navy: {
+                name: '네이비',
+                words: ['진실한', '존경하는', '흡족한', '몰입하는', '안정적인', '집중하는', '무아지경', '진지한', '자부심있는', '확고한'],
+                additionalWords: ['깊은', '신뢰할수있는', '성찰하는', '침착한', '의지가 강한'],
+                bgColor: 'linear-gradient(135deg, #0b0b92, #3333bb)'
+            },
+            purple: {
+                name: '퍼플',
+                words: ['자랑스러운', '벅찬', '경이로운', '기대에 부푼', '특별한', '살아있는', '반짝이는', '성찰하는', '해방된', '당당한'],
+                additionalWords: ['신비로운', '영적인', '창조적인', '고귀한', '변화하는'],
+                bgColor: 'linear-gradient(135deg, #631da2, #8844cc)'
+            },
+            magenta: {
+                name: '마젠타',
+                words: ['충만한', '감사하는', '풍요로운', '감동받은', '환희에 찬', '영감얻은', '초월한', '챙겨주고픈', '푸근한', '침착한'],
+                additionalWords: ['역동적인', '자극적인', '강인한', '도전적인', '화려한'],
+                bgColor: 'linear-gradient(135deg, #ff009d, #ff44bb)'
+            },
+            pink: {
+                name: '핑크',
+                words: ['애정어린', '사랑하는', '낭만적인', '평화로운', '따뜻한', '부드러운', '친절한', '감동주는', '순수한', '달콤한'],
+                additionalWords: ['사랑스러운', '온화한', '자애로운', '포용하는', '다정한'],
+                bgColor: 'linear-gradient(135deg, #ff8fb3, #ffb3d6)'
+            }
+        };
+        
+        let selectedColors = [];
+        
+        // Add click event listeners to color items
+        document.addEventListener('DOMContentLoaded', function() {
+            const colorItems = document.querySelectorAll('.color-item');
+            const nextBtn = document.getElementById('nextBtn');
+            const selectionCounter = document.getElementById('selectionCounter');
+            
+            colorItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const colorKey = this.dataset.color;
+                    
+                    if (this.classList.contains('selected')) {
+                        // Deselect color
+                        this.classList.remove('selected');
+                        selectedColors = selectedColors.filter(color => color !== colorKey);
+                    } else if (selectedColors.length < 3) {
+                        // Select color
+                        this.classList.add('selected');
+                        selectedColors.push(colorKey);
+                    }
+                    
+                    updateCounter();
+                    updateNextButton();
+                });
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                if (selectedColors.length === 3) {
+                    showResults();
+                }
+            });
+        });
+        
+        function updateCounter() {
+            const counter = document.getElementById('selectionCounter');
+            counter.textContent = `선택된 색깔: ${selectedColors.length}/3`;
+        }
+        
+        function updateNextButton() {
+            const nextBtn = document.getElementById('nextBtn');
+            if (selectedColors.length === 3) {
+                nextBtn.classList.add('active');
+            } else {
+                nextBtn.classList.remove('active');
+            }
+        }
+        
+        function showResults() {
+            document.getElementById('colorSelection').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            
+            displaySelectedColors();
+            generateWordCards();
+        }
+        
+        function displaySelectedColors() {
+            const container = document.getElementById('selectedColors');
+            container.innerHTML = '';
+            
+            selectedColors.forEach(colorKey => {
+                const colorDiv = document.createElement('div');
+                colorDiv.className = 'selected-color';
+                colorDiv.style.background = colorData[colorKey].bgColor;
+                container.appendChild(colorDiv);
+            });
+        }
+        
+        function generateWordCards() {
+            const container = document.getElementById('wordCards');
+            container.innerHTML = '';
+            
+            selectedColors.forEach(colorKey => {
+                const colorInfo = colorData[colorKey];
+                const allWords = [...colorInfo.words, ...colorInfo.additionalWords];
+                
+                // Randomly select ONE word for each color
+                const randomWord = allWords[Math.floor(Math.random() * allWords.length)];
+                
+                const card = document.createElement('div');
+                card.className = 'word-card';
+                
+                card.innerHTML = `
+                    <div class="card-color" style="background: ${colorInfo.bgColor}">
+                        ${colorInfo.name}
+                    </div>
+                    <div class="card-words">
+                        <span class="word-tag single-word">${randomWord}</span>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+        
+        function restart() {
+            selectedColors = [];
+            document.querySelectorAll('.color-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            document.getElementById('colorSelection').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            updateCounter();
+            updateNextButton();
+        }
+    </script>
+</body>
+</html>
