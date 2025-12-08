@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>컬러 & 단어 선택 게임</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 기본 폰트 설정 (선택사항) */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+
+    <div id="app" class="w-full max-w-6xl mx-auto bg-white p-6 rounded-xl shadow-lg min-h-[600px]">
+        </div>
+
+    <script>
+        // --- 데이터 정의 ---
+        const colorGroups = {
+            'red': { name: '레드', class: 'bg-red-500', words: ['행복', '성공', '열정', '목표', '건강'] },
+            'orange': { name: '오렌지', class: 'bg-orange-500', words: ['자유', '도전', '용기', '열린', '시도'] },
+            'yellow': { name: '옐로우', class: 'bg-yellow-500', words: ['희망', '기쁨', '긍정', '지혜', '배움'] },
+            'green': { name: '그린', class: 'bg-green-500', words: ['협력', '우정', '현재', '배려', '공감'] },
+            'cyan': { name: '시안', class: 'bg-cyan-500', words: ['신뢰', '책임', '소통', '성실', '미래'] },
+            'navy': { name: '네이비', class: 'bg-blue-800', words: ['정의', '진실', '정직', '이해', '신중'] },
+            'purple': { name: '퍼플', class: 'bg-purple-500', words: ['창의', '존중', '봉사', '겸손', '믿음'] },
+            'magenta': { name: '마젠타', class: 'bg-fuchsia-500', words: ['나눔', '헌신', '희생', '감사', '여유'] },
+            'pink': { name: '핑크', class: 'bg-pink-500', words: ['친절', '화목', '사랑', '애정', '애교'] }
+        };
+
+        // --- 상태 변수 (State) ---
+        let selectedColor = '';
+        let selectedCount = 3;
+        let selectedWords = []; // {word, color} 객체 배열
+        let showResult = false;
+        let randomizedWords = [];
+
+        // --- 로직 함수 ---
+
+        // 단어 섞기 함수
+        function shuffleWords() {
+            let allWords = [];
+            Object.entries(colorGroups).forEach(([color, data]) => {
+                data.words.forEach(word => {
+                    allWords.push({ word, color });
+                });
+            });
+
+            for (let i = allWords.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allWords[i], allWords[j]] = [allWords[j], allWords[i]];
+            }
+            
+            randomizedWords = allWords;
+            render(); // 데이터 변경 후 다시 그리기
+        }
+
+        // 초기화 함수
+        function init() {
+            shuffleWords();
+        }
+
+        // 핸들러: 컬러 선택
+        function handleColorSelect(key) {
+            selectedColor = key;
+            render();
+        }
+
+        // 핸들러: 개수 변경 (3개/5개)
+        function handleCountChange(count) {
+            selectedCount = count;
+            selectedWords = []; // 개수 변경 시 선택 초기화
+            render();
+        }
+
+        // 핸들러: 단어 클릭
+        function handleWordClick(wordObj) {
+            // 이미 선택된 단어인지 확인 (객체 참조가 아닌 내용 비교를 위해 filter 사용)
+            const exists = selectedWords.some(w => w.word === wordObj.word);
+
+            if (exists) {
+                selectedWords = selectedWords.filter(w => w.word !== wordObj.word);
+            } else if (selectedWords.length < selectedCount) {
+                selectedWords.push(wordObj);
+            }
+            render();
+        }
+
+        // 핸들러: 결과 보기
+        function handleSubmit() {
+            if (selectedWords.length === selectedCount && selectedColor) {
+                showResult = true;
+                render();
+            }
+        }
+
+        // 핸들러: 다시 하기
+        function handleReset() {
+            selectedWords = [];
+            selectedColor = '';
+            showResult = false;
+            shuffleWords(); // 셔플 내부에서 render 호출됨
+        }
+
+        // --- 렌더링 함수 (HTML 생성) ---
+        function render() {
+            const app = document.getElementById('app');
+            app.innerHTML = ''; // 기존 내용 비우기
+
+            if (!showResult) {
+                renderGameScreen(app);
+            } else {
+                renderResultScreen(app);
+            }
+        }
+
+        // 화면 1: 게임 선택 화면
+        function renderGameScreen(container) {
+            // 1. 컬러 선택 섹션
+            let html = `
+                <div class="mb-8 animate-fade-in">
+                    <h2 class="text-xl font-medium mb-4">1. 끌리는 컬러를 1개 선택해주세요.</h2>
+                    <div class="flex gap-4 flex-wrap justify-center md:justify-start">
+            `;
+
+            Object.entries(colorGroups).forEach(([key, data]) => {
+                const isSelected = selectedColor === key;
+                const activeClass = isSelected ? 'ring-4 ring-blue-400 scale-110' : 'hover:scale-105';
+                
+                html += `
+                    <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="handleColorSelect('${key}')">
+                        <button class="w-12 h-12 rounded-full ${data.class} transition-transform ${activeClass}" title="${data.name}"></button>
+                        <span class="text-sm font-medium text-gray-700">${data.name}</span>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            // 2. 개수 선택 버튼
+            const btn3Class = selectedCount === 3 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300';
+            const btn5Class = selectedCount === 5 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300';
+
+            html += `
+                <div class="mb-6">
+                    <h2 class="text-xl font-medium mb-4">2. 아래 보이는 단어 중 나와 잘 어울리는 단어를 선택해주세요.</h2>
+                    <div class="flex gap-4 mb-4">
+                        <button onclick="handleCountChange(3)" class="px-4 py-2 rounded transition-colors ${btn3Class}">3개 선택</button>
+                        <button onclick="handleCountChange(5)" class="px-4 py-2 rounded transition-colors ${btn5Class}">5개 선택</button>
+                    </div>
+                </div>
+            `;
+
+            // 3. 단어 그리드
+            html += `<div class="grid grid-cols-5 md:grid-cols-9 gap-2 mb-8">`;
+            
+            randomizedWords.forEach((item, index) => {
+                const isSelected = selectedWords.some(w => w.word === item.word);
+                const borderClass = isSelected ? 'border-blue-500 border-2 bg-blue-50' : 'border border-gray-200 bg-white hover:border-blue-300';
+                
+                // 주의: onclick에 객체를 바로 넘길 수 없으므로 인덱스를 활용하거나 클로저 방식이 필요하지만, 
+                // 여기서는 randomizedWords가 전역변수이므로 인덱스를 사용해 참조합니다.
+                html += `
+                    <div onclick="handleWordClick(randomizedWords[${index}])" 
+                         class="p-2 h-16 flex items-center justify-center text-center cursor-pointer rounded shadow-sm transform transition-all hover:scale-105 ${borderClass}">
+                        <div class="text-sm font-medium select-none">${item.word}</div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+
+            // 4. 완료 버튼
+            const isReady = selectedWords.length === selectedCount && selectedColor !== '';
+            const submitBtnClass = isReady ? 'bg-green-500 text-white hover:bg-green-600 shadow-md transform hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed';
+            
+            html += `
+                <div class="flex justify-center">
+                    <button onclick="handleSubmit()" 
+                            class="px-8 py-3 rounded-lg text-lg font-bold transition-all ${submitBtnClass}" 
+                            ${!isReady ? 'disabled' : ''}>
+                        선택 완료 (${selectedWords.length}/${selectedCount})
+                    </button>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // 화면 2: 결과 화면
+        function renderResultScreen(container) {
+            const colorData = colorGroups[selectedColor];
+            
+            let html = `
+                <div class="animate-fade-in">
+                    <div class="mb-8 text-center md:text-left">
+                        <h3 class="text-xl font-bold mb-4 text-gray-800">1. 내가 선택한 끌림 컬러</h3>
+                        <div class="flex items-center justify-center md:justify-start gap-4 p-4 bg-gray-50 rounded-lg inline-block">
+                            <div class="flex flex-col items-center gap-2">
+                                <div class="w-20 h-20 rounded-full shadow-md ${colorData.class}"></div>
+                                <span class="text-xl font-bold text-gray-700">${colorData.name}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl font-bold mb-6 text-gray-800 text-center md:text-left">2. 나를 표현하는 단어들</h3>
+                    
+                    <div class="flex flex-wrap justify-center gap-6 mb-12">
+            `;
+
+            selectedWords.forEach(({ word, color }) => {
+                const cardColorClass = colorGroups[color].class;
+                const cardColorName = colorGroups[color].name;
+
+                html += `
+                    <div class="w-40 h-64 relative transform hover:scale-105 transition-transform duration-300 shadow-xl rounded-xl overflow-hidden">
+                        <div class="absolute inset-0 ${cardColorClass} flex flex-col justify-between p-4">
+                            <div class="text-xs text-white opacity-80 tracking-widest font-light text-center">
+                                COLORINGCODE
+                            </div>
+                            <div class="flex items-center justify-center flex-grow">
+                                <span class="text-white font-bold text-3xl drop-shadow-md">${word}</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-1 border-t border-white/20 pt-2">
+                                <span class="text-sm text-white font-medium bg-black/10 px-2 py-0.5 rounded-full">${cardColorName}</span>
+                                <div class="text-[10px] text-white/90 text-center mt-1">
+                                    채아힐링센터
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                    
+                    <div class="flex justify-center pt-8 border-t">
+                        <button onclick="handleReset()" class="px-6 py-2 rounded-lg bg-gray-500 text-white hover:bg-gray-600 transition-colors shadow flex items-center gap-2">
+                            <span>↺</span> 다시 선택하기
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // 앱 시작
+        init();
+
+    </script>
+</body>
+</html>
