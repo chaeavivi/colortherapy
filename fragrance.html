@@ -19,6 +19,10 @@
         <header class="text-center mb-5 pt-4">
             <h1 class="text-2xl font-bold text-gray-800">향료 코드 찾기</h1>
             <p class="text-sm text-gray-500 mt-1">향료 이름을 검색하고 코드를 복사하세요</p>
+            <a href="fragrance-check.html"
+               class="inline-block mt-3 text-sm text-purple-600 border border-purple-200 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-full transition">
+                🔎 코드 → 이름 확인하러 가기
+            </a>
         </header>
 
         <!-- 검색창 -->
@@ -59,51 +63,10 @@
         복사되었습니다
     </div>
 
+    <script src="fragrance-data.js"></script>
     <script>
-        // --- 향료 데이터 (이름 → 코드) ---
-        const fragrances = [
-            { name: '로즈', code: 'PB03' },
-            { name: '무화과', code: 'PB82' },
-            { name: '시더우드', code: 'PB30' },
-            { name: '시나몬', code: 'PB11' },
-            { name: '오렌지', code: 'PB20' },
-            { name: '일랑일랑', code: 'PB16' },
-            { name: '자몽', code: 'PB01' },
-            { name: '샌달우드', code: 'PB09' },
-            { name: '레몬', code: 'PB02' },
-            { name: '허니써클', code: 'PB13' },
-            { name: '수선화', code: 'PB28' },
-            { name: '프리지아', code: 'PB05' },
-            { name: '베르가못', code: 'PB10' },
-            { name: '밤부', code: 'PB79' },
-            { name: '그린', code: 'PB83' },
-            { name: '클라리세이지', code: 'PB35' },
-            { name: '오션', code: 'PB42' },
-            { name: '민트', code: 'PB39' },
-            { name: '아쿠아', code: 'PB51' },
-            { name: '마린블루', code: 'PB19' },
-            { name: '레더', code: 'PB69' },
-            { name: '블랙커런트', code: 'PB46' },
-            { name: '머스크', code: 'PB75' },
-            { name: '블랙베리', code: 'PB44' },
-            { name: '바이올렛', code: 'PB41' },
-            { name: '라일락', code: 'PB06' },
-            { name: '아이리스', code: 'PB81' },
-            { name: '라벤더', code: 'PB24' },
-            { name: '히아신스', code: 'PB64' },
-            { name: '프랑킨센스', code: 'PB80' },
-            { name: '다마스크로즈', code: 'PB66' },
-            { name: '블랙체리', code: 'PB45' },
-            { name: '헬리오트핀', code: 'PB62' },
-            { name: '피오니', code: 'PB61' },
-            { name: '매그놀리아', code: 'PB76' },
-            { name: '피치복숭아', code: 'PB15' },
-            { name: '앰버그리스', code: 'PB52' },
-            { name: '로즈우드', code: 'PB72' },
-            { name: '오렌지 플라워', code: 'PB25' },
-            { name: '타임', code: 'PB33' },
-            { name: '튜베로즈', code: 'PB21' },
-        ].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+        // --- 향료 데이터 (이름 → 코드, 공용 파일에서 로드) ---
+        const fragrances = [...window.FRAGRANCES].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 
         // --- DOM 참조 ---
         const searchEl = document.getElementById('search');
