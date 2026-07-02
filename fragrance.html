@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>향료 코드 찾기 | 채아힐링센터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        /* 검색어 하이라이트 */
+        mark { background: #fef08a; color: inherit; border-radius: 3px; padding: 0 1px; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4">
+
+    <div class="w-full max-w-2xl mx-auto">
+
+        <!-- 헤더 -->
+        <header class="text-center mb-5 pt-4">
+            <h1 class="text-2xl font-bold text-gray-800">향료 코드 찾기</h1>
+            <p class="text-sm text-gray-500 mt-1">향료 이름을 검색하고 코드를 복사하세요</p>
+        </header>
+
+        <!-- 검색창 -->
+        <div class="sticky top-2 z-10 mb-4">
+            <div class="relative">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔍</span>
+                <input
+                    id="search"
+                    type="text"
+                    inputmode="search"
+                    autocomplete="off"
+                    placeholder="향료 이름 또는 코드 검색 (예: 로즈, PB03)"
+                    class="w-full pl-11 pr-10 py-3 rounded-xl border border-gray-300 shadow-sm bg-white
+                           focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 text-base"
+                >
+                <button id="clearBtn"
+                    class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <p id="count" class="text-xs text-gray-400 mt-1.5 pl-1"></p>
+        </div>
+
+        <!-- 결과 목록 -->
+        <div id="list" class="space-y-2"></div>
+
+        <!-- 결과 없음 -->
+        <div id="empty" class="hidden text-center text-gray-400 py-16">
+            <div class="text-4xl mb-2">😶</div>
+            <p>검색 결과가 없어요</p>
+        </div>
+
+        <footer class="text-center text-xs text-gray-300 mt-8 pb-6">채아힐링센터 컬러테라피</footer>
+    </div>
+
+    <!-- 복사 완료 토스트 -->
+    <div id="toast"
+        class="fixed left-1/2 -translate-x-1/2 bottom-6 bg-gray-800 text-white text-sm px-4 py-2 rounded-full shadow-lg
+               opacity-0 pointer-events-none transition-opacity duration-200">
+        복사되었습니다
+    </div>
+
+    <script>
+        // --- 향료 데이터 (이름 → 코드) ---
+        const fragrances = [
+            { name: '로즈', code: 'PB03' },
+            { name: '무화과', code: 'PB82' },
+            { name: '시더우드', code: 'PB30' },
+            { name: '시나몬', code: 'PB11' },
+            { name: '오렌지', code: 'PB20' },
+            { name: '일랑일랑', code: 'PB16' },
+            { name: '자몽', code: 'PB01' },
+            { name: '샌달우드', code: 'PB09' },
+            { name: '레몬', code: 'PB02' },
+            { name: '허니써클', code: 'PB13' },
+            { name: '수선화', code: 'PB28' },
+            { name: '프리지아', code: 'PB05' },
+            { name: '베르가못', code: 'PB10' },
+            { name: '밤부', code: 'PB79' },
+            { name: '그린', code: 'PB83' },
+            { name: '클라리세이지', code: 'PB35' },
+            { name: '오션', code: 'PB42' },
+            { name: '민트', code: 'PB39' },
+            { name: '아쿠아', code: 'PB51' },
+            { name: '마린블루', code: 'PB19' },
+            { name: '레더', code: 'PB69' },
+            { name: '블랙커런트', code: 'PB46' },
+            { name: '머스크', code: 'PB75' },
+            { name: '블랙베리', code: 'PB44' },
+            { name: '바이올렛', code: 'PB41' },
+            { name: '라일락', code: 'PB06' },
+            { name: '아이리스', code: 'PB81' },
+            { name: '라벤더', code: 'PB24' },
+            { name: '히아신스', code: 'PB64' },
+            { name: '프랑킨센스', code: 'PB80' },
+            { name: '다마스크로즈', code: 'PB66' },
+            { name: '블랙체리', code: 'PB45' },
+            { name: '헬리오트핀', code: 'PB62' },
+            { name: '피오니', code: 'PB61' },
+            { name: '매그놀리아', code: 'PB76' },
+            { name: '피치복숭아', code: 'PB15' },
+            { name: '앰버그리스', code: 'PB52' },
+            { name: '로즈우드', code: 'PB72' },
+            { name: '오렌지 플라워', code: 'PB25' },
+            { name: '타임', code: 'PB33' },
+            { name: '튜베로즈', code: 'PB21' },
+        ].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+
+        // --- DOM 참조 ---
+        const searchEl = document.getElementById('search');
+        const clearBtn = document.getElementById('clearBtn');
+        const listEl = document.getElementById('list');
+        const emptyEl = document.getElementById('empty');
+        const countEl = document.getElementById('count');
+        const toastEl = document.getElementById('toast');
+
+        // 검색어 강조
+        function highlight(text, query) {
+            if (!query) return text;
+            const i = text.toLowerCase().indexOf(query.toLowerCase());
+            if (i === -1) return text;
+            return text.slice(0, i) + '<mark>' + text.slice(i, i + query.length) + '</mark>' + text.slice(i + query.length);
+        }
+
+        // 목록 그리기
+        function render(query = '') {
+            const q = query.trim();
+            const items = q
+                ? fragrances.filter(f => f.name.includes(q) || f.code.toLowerCase().includes(q.toLowerCase()))
+                : fragrances;
+
+            countEl.textContent = q ? `${items.length}개 결과` : `전체 ${fragrances.length}개`;
+
+            if (items.length === 0) {
+                listEl.innerHTML = '';
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+            emptyEl.classList.add('hidden');
+
+            listEl.innerHTML = items.map(f => `
+                <div class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-4 py-3 shadow-sm">
+                    <div class="min-w-0">
+                        <div class="font-medium text-gray-800 truncate">${highlight(f.name, q)}</div>
+                        <div class="text-sm text-purple-600 font-mono tracking-wide mt-0.5">${highlight(f.code, q)}</div>
+                    </div>
+                    <button
+                        data-code="${f.code}"
+                        class="copy-btn shrink-0 ml-3 inline-flex items-center gap-1 bg-purple-500 hover:bg-purple-600 active:scale-95
+                               text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                        복사
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // 클립보드 복사
+        async function copyCode(code, btn) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(code);
+                } else {
+                    // 폴백 (구형 브라우저 / http 환경)
+                    const ta = document.createElement('textarea');
+                    ta.value = code;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                showToast(`${code} 복사됨`);
+                if (btn) {
+                    const original = btn.textContent;
+                    btn.textContent = '완료 ✓';
+                    btn.classList.add('bg-green-500');
+                    btn.classList.remove('bg-purple-500', 'hover:bg-purple-600');
+                    setTimeout(() => {
+                        btn.textContent = original;
+                        btn.classList.remove('bg-green-500');
+                        btn.classList.add('bg-purple-500', 'hover:bg-purple-600');
+                    }, 1200);
+                }
+            } catch (e) {
+                showToast('복사에 실패했어요');
+            }
+        }
+
+        let toastTimer;
+        function showToast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.remove('opacity-0');
+            toastEl.classList.add('opacity-100');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toastEl.classList.add('opacity-0');
+                toastEl.classList.remove('opacity-100');
+            }, 1500);
+        }
+
+        // --- 이벤트 ---
+        searchEl.addEventListener('input', (e) => {
+            const v = e.target.value;
+            clearBtn.classList.toggle('hidden', v.length === 0);
+            render(v);
+        });
+
+        clearBtn.addEventListener('click', () => {
+            searchEl.value = '';
+            clearBtn.classList.add('hidden');
+            render('');
+            searchEl.focus();
+        });
+
+        // 이벤트 위임으로 복사 버튼 처리
+        listEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('.copy-btn');
+            if (btn) copyCode(btn.dataset.code, btn);
+        });
+
+        // 초기 렌더링
+        render('');
+    </script>
+</body>
+</html>
