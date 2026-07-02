@@ -11,6 +11,8 @@ window.FRAGRANCES = [
     { name: '샌달우드', code: 'PB09' },
     { name: '레몬', code: 'PB02' },
     { name: '라임', code: 'PB68' },
+    { name: '진저', code: 'PB23' },
+    { name: '자스민', code: 'PB18' },
     { name: '허니써클', code: 'PB13' },
     { name: '수선화', code: 'PB28' },
     { name: '프리지아', code: 'PB05' },
