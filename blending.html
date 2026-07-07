@@ -128,6 +128,7 @@
         const counts = {};                 // { 향료이름: 배정(목표) 횟수 }
         let mode = 'setup';                // 'setup' | 'count'
         const added = {};                  // { 향료이름: 실제로 넣은 횟수 } (카운팅 모드)
+        let roundCount = 0;                // 전체 한 바퀴(＋1씩) 누른 횟수
 
         const byNote = { Top: [], Middle: [], Base: [] };
         FRAGRANCES.forEach(f => { if (byNote[f.note]) byNote[f.note].push(f); });
@@ -359,6 +360,7 @@
             const plan = planList();
             if (!plan.length) { showToast('먼저 향료 횟수를 정해주세요'); return; }
             plan.forEach(p => { if (added[p.name] == null) added[p.name] = 0; });
+            roundCount = 0;
             mode = 'count';
             setupView.classList.add('hidden');
             countView.classList.remove('hidden');
@@ -378,6 +380,7 @@
             const allDone = totalAdded === totalTarget && plan.every(p => (added[p.name] || 0) === p.target);
             const pct = totalTarget ? Math.round(totalAdded / totalTarget * 100) : 0;
             const ml = totalAdded * DROP_ML;
+            const remaining = plan.filter(p => (added[p.name] || 0) < p.target).length;  // 이번 바퀴에 넣을 향료 수
 
             const cards = plan.map(p => {
                 const a = added[p.name] || 0;
@@ -420,9 +423,15 @@
                     <div class="mt-2 h-2 rounded-full bg-white/25 overflow-hidden">
                         <div class="h-full bg-white transition-all" style="width:${pct}%"></div>
                     </div>
+                    ${roundCount > 0 && !allDone ? '<div class="mt-2 text-[11px] text-white/80">🔄 지금까지 ' + roundCount + '바퀴</div>' : ''}
                     ${allDone ? '<div class="mt-2 text-center font-bold">🎉 완성! 약 ' + fmt(ml) + 'ml 채웠어요</div>' : ''}
                 </div>
-                <p class="text-xs text-gray-500 mb-2 px-1">향료를 넣을 때마다 큰 버튼을 눌러 세어보세요. 잘못 눌렀으면 − 로 되돌려요.</p>
+                ${allDone ? '' : `
+                <button id="roundBtn" class="w-full mb-3 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-base font-bold py-3.5 rounded-xl transition shadow flex items-center justify-center gap-2">
+                    🔄 전체 한 바퀴 +1
+                    <span class="text-sm font-normal text-purple-100">(남은 ${remaining}종에 한 방울씩)</span>
+                </button>`}
+                <p class="text-xs text-gray-500 mb-2 px-1">🔄 <b>전체 한 바퀴 +1</b> 로 향료마다 한 방울씩 돌아가며 넣으세요. 개별 조절은 아래 +/− 로 하면 됩니다.</p>
                 <div class="space-y-2">${cards}</div>
                 <div class="flex gap-2 mt-4">
                     <button id="backBtn" class="flex-1 bg-white border border-gray-300 hover:bg-gray-100 active:scale-95 text-gray-700 text-sm font-medium py-2.5 rounded-lg transition">← 레시피 수정</button>
@@ -439,9 +448,18 @@
                 renderCount();
                 return;
             }
+            if (e.target.closest('#roundBtn')) {
+                let changed = 0;
+                planList().forEach(p => {
+                    if ((added[p.name] || 0) < p.target) { added[p.name] = (added[p.name] || 0) + 1; changed++; }
+                });
+                if (changed) { roundCount++; renderCount(); showToast(`${roundCount}바퀴째 · ${changed}종에 한 방울씩`); }
+                return;
+            }
             if (e.target.closest('#backBtn')) { exitCount(); return; }
             if (e.target.closest('#recountBtn')) {
                 planList().forEach(p => { added[p.name] = 0; });
+                roundCount = 0;
                 renderCount();
                 showToast('카운트를 0으로 되돌렸어요');
             }
