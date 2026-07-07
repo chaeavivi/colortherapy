@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>향수 블랜딩 계산기 | 채아힐링센터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .chip { transition: transform .08s ease, background-color .15s ease, border-color .15s ease; }
+        .chip:active { transform: scale(.96); }
+        .step-btn { transition: transform .08s ease; }
+        .step-btn:active { transform: scale(.9); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4">
+
+    <div class="w-full max-w-2xl mx-auto">
+
+        <!-- 헤더 -->
+        <header class="text-center mb-5 pt-4">
+            <h1 class="text-2xl font-bold text-gray-800">향수 블랜딩 계산기</h1>
+            <p class="text-sm text-gray-500 mt-1">비율 → 향료 선택 → 향료별 스포이드 횟수까지 계산해드려요</p>
+        </header>
+
+        <!-- STEP 1. 블랜딩 비율 -->
+        <section class="mb-5">
+            <h2 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-500 text-white text-xs">1</span>
+                블랜딩 비율 선택 <span class="text-gray-400 font-normal">(10ml 기준)</span>
+            </h2>
+            <div id="blendCards" class="grid grid-cols-3 gap-2"></div>
+        </section>
+
+        <!-- STEP 2. 향료 선택 -->
+        <section class="mb-5">
+            <h2 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-500 text-white text-xs">2</span>
+                노트별 향료 선택
+            </h2>
+            <div id="noteGroups" class="space-y-3"></div>
+        </section>
+
+        <!-- STEP 3. 향료 양(횟수) 계산 -->
+        <section class="mb-8">
+            <h2 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-500 text-white text-xs">3</span>
+                향료 양(스포이드 횟수) 계산
+            </h2>
+            <div id="result"></div>
+        </section>
+
+        <footer class="text-center text-xs text-gray-300 mt-8 pb-6">채아힐링센터 컬러테라피</footer>
+    </div>
+
+    <!-- 토스트 -->
+    <div id="toast"
+        class="fixed left-1/2 -translate-x-1/2 bottom-6 bg-gray-800 text-white text-sm px-4 py-2 rounded-full shadow-lg
+               opacity-0 pointer-events-none transition-opacity duration-200">
+    </div>
+
+    <script>
+        // ─────────────────────────────────────────────
+        //  향료 데이터 — 워크시트 표 그대로 (구분/계열/향료)
+        // ─────────────────────────────────────────────
+        const FRAGRANCES = [
+            { note: 'Middle', family: 'Floral',   name: '로즈' },
+            { note: 'Top',    family: 'Fruity',   name: '무화과' },
+            { note: 'Top',    family: 'Citrus',   name: '오렌지' },
+            { note: 'Middle', family: 'Floral',   name: '일랑일랑' },
+            { note: 'Top',    family: 'Citrus',   name: '레몬' },
+            { note: 'Middle', family: 'Floral',   name: '허니써클' },
+            { note: 'Top',    family: 'Citrus',   name: '베르가못' },
+            { note: 'Middle', family: 'Green',    name: '밤부' },
+            { note: 'Middle', family: 'Marine',   name: '오션' },
+            { note: 'Top',    family: 'Herbal',   name: '민트' },
+            { note: 'Base',   family: 'Animalic', name: '레더' },
+            { note: 'Middle', family: 'Fruity',   name: '블랙커런트' },
+            { note: 'Middle', family: 'Floral',   name: '바이올렛' },
+            { note: 'Middle', family: 'Floral',   name: '라일락' },
+            { note: 'Middle', family: 'Floral',   name: '히아신스' },
+            { note: 'Base',   family: 'Balsamic', name: '프랑킨센스' },
+            { note: 'Base',   family: 'Floral',   name: '헬리오트로핀' },
+            { note: 'Middle', family: 'Floral',   name: '피오니' },
+        ];
+
+        // ─────────────────────────────────────────────
+        //  블랜딩 기준값
+        // ─────────────────────────────────────────────
+        // 워크시트 비율/횟수 그대로. 스포이드 1회 ≈ 0.45ml → 총 20회 ≈ 9ml.
+        // (10ml 기준 횟수를 그대로 쓰되 실제로는 약 9ml → 10ml 병에 여유)
+        const DROP_ML  = 0.45;   // 1회당 평균 용량(ml)
+        const DROP_TOL = 0.05;   // 1회당 오차(±ml)  → 실제 0.40~0.50ml
+
+        const BLENDS = {
+            balance: { label: '밸런스', sub: '탑·베이스 균형',    drops: { Top: 5, Middle: 10, Base: 5 } },
+            fresh:   { label: '프레시', sub: '탑 강조 · 상쾌',    drops: { Top: 6, Middle: 10, Base: 4 } },
+            rich:    { label: '리치',   sub: '베이스 강조 · 묵직', drops: { Top: 4, Middle: 10, Base: 6 } },
+        };
+
+        const NOTES = [
+            { key: 'Top',    ko: '탑 노트',    emoji: '🍋', desc: '가장 먼저 나는 향',
+              chip: 'bg-amber-100 text-amber-800 border-amber-300', on: 'bg-amber-500 text-white border-amber-500',
+              head: 'text-amber-700', dot: 'bg-amber-400', soft: 'bg-amber-50 border-amber-200' },
+            { key: 'Middle', ko: '미들 노트', emoji: '🌸', desc: '향의 중심',
+              chip: 'bg-rose-100 text-rose-800 border-rose-300', on: 'bg-rose-500 text-white border-rose-500',
+              head: 'text-rose-700', dot: 'bg-rose-400', soft: 'bg-rose-50 border-rose-200' },
+            { key: 'Base',   ko: '베이스 노트', emoji: '🌰', desc: '오래 남는 잔향',
+              chip: 'bg-stone-200 text-stone-800 border-stone-400', on: 'bg-stone-600 text-white border-stone-600',
+              head: 'text-stone-700', dot: 'bg-stone-500', soft: 'bg-stone-100 border-stone-300' },
+        ];
+
+        // ─────────────────────────────────────────────
+        //  상태
+        // ─────────────────────────────────────────────
+        let currentBlend = 'rich';         // 워크시트 예시가 '리치' 라 기본값도 리치
+        const selected = new Set();        // 선택된 향료 이름
+        const counts = {};                 // { 향료이름: 배정 횟수 }
+
+        const byNote = { Top: [], Middle: [], Base: [] };
+        FRAGRANCES.forEach(f => { if (byNote[f.note]) byNote[f.note].push(f); });
+
+        const fmt = n => (Math.round(n * 100) / 100).toString();
+        const selectedInNote = k => byNote[k].filter(f => selected.has(f.name));
+
+        // 노트 목표 횟수를 선택 향료들에 최대한 고르게 분배 (기본값/‘고르게 채우기’용)
+        function evenAlloc(total, n) {
+            if (n === 0) return [];
+            const base = Math.floor(total / n), rem = total - base * n;
+            return Array.from({ length: n }, (_, i) => base + (i < rem ? 1 : 0));
+        }
+        // 특정 노트를 목표 횟수 기준으로 고르게 재분배
+        function autoFillNote(key) {
+            const frags = selectedInNote(key);
+            const alloc = evenAlloc(BLENDS[currentBlend].drops[key], frags.length);
+            frags.forEach((f, i) => { counts[f.name] = alloc[i]; });
+        }
+        function autoFillAll() { NOTES.forEach(n => autoFillNote(n.key)); }
+
+        // ─────────────────────────────────────────────
+        //  STEP 1
+        // ─────────────────────────────────────────────
+        const blendCardsEl = document.getElementById('blendCards');
+        function renderBlendCards() {
+            blendCardsEl.innerHTML = Object.entries(BLENDS).map(([key, b]) => {
+                const active = key === currentBlend, d = b.drops;
+                return `
+                    <button data-blend="${key}"
+                        class="blend-card text-left rounded-xl border-2 px-3 py-3 transition
+                               ${active ? 'border-purple-500 bg-purple-50 shadow-sm' : 'border-gray-200 bg-white hover:border-purple-200'}">
+                        <div class="font-bold ${active ? 'text-purple-700' : 'text-gray-800'}">${b.label}</div>
+                        <div class="text-[11px] text-gray-400 mb-1.5">${b.sub}</div>
+                        <div class="text-[11px] leading-4 text-gray-500">
+                            탑 <b class="text-gray-700">${d.Top}</b>·미들 <b class="text-gray-700">${d.Middle}</b>·베이스 <b class="text-gray-700">${d.Base}</b>
+                        </div>
+                    </button>`;
+            }).join('');
+        }
+
+        // ─────────────────────────────────────────────
+        //  STEP 2 — 향료 선택
+        // ─────────────────────────────────────────────
+        const noteGroupsEl = document.getElementById('noteGroups');
+        function renderNoteGroups() {
+            const drops = BLENDS[currentBlend].drops;
+            noteGroupsEl.innerHTML = NOTES.map(n => {
+                const chips = byNote[n.key].map(f => {
+                    const on = selected.has(f.name);
+                    return `
+                        <button data-name="${f.name}"
+                            class="chip rounded-full border px-3 py-1.5 text-sm ${on ? n.on : n.chip}">
+                            ${f.name}<span class="opacity-60 text-[11px]"> · ${f.family}</span>${on ? ' ✓' : ''}
+                        </button>`;
+                }).join('');
+                const cnt = selectedInNote(n.key).length;
+                return `
+                    <div class="rounded-xl border ${n.soft} p-3">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="font-bold ${n.head} flex items-center gap-1.5">
+                                <span>${n.emoji}</span>${n.ko}
+                                <span class="text-[11px] font-medium text-gray-500">· 목표 ${drops[n.key]}회</span>
+                            </div>
+                            <span class="text-[11px] text-gray-500">${cnt}종 선택</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mb-2">${n.desc}</p>
+                        <div class="flex flex-wrap gap-1.5">${chips}</div>
+                    </div>`;
+            }).join('');
+        }
+
+        // ─────────────────────────────────────────────
+        //  STEP 3 — 향료별 횟수 계산 + 검증
+        // ─────────────────────────────────────────────
+        const resultEl = document.getElementById('result');
+        function renderResult() {
+            const drops = BLENDS[currentBlend].drops;
+            const totalTarget = drops.Top + drops.Middle + drops.Base;
+
+            const anySelected = selected.size > 0;
+            if (!anySelected) {
+                resultEl.innerHTML = `
+                    <div class="text-center text-gray-400 py-10 bg-white rounded-xl border border-gray-200">
+                        <div class="text-3xl mb-2">🧪</div>
+                        위에서 향료를 선택하면<br>향료별 스포이드 횟수가 여기에 표시됩니다.
+                    </div>`;
+                return;
+            }
+
+            let totalAssigned = 0;
+
+            const noteBlocks = NOTES.map(n => {
+                const target = drops[n.key];
+                const frags = selectedInNote(n.key);
+
+                if (frags.length === 0) {
+                    return `
+                        <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-gray-300 bg-white">
+                            <span class="w-2 h-2 rounded-full ${n.dot}"></span>
+                            <span class="font-semibold ${n.head}">${n.ko}</span>
+                            <span class="text-xs text-gray-400">목표 ${target}회 · 향료를 선택하세요</span>
+                        </div>`;
+                }
+
+                const assigned = frags.reduce((s, f) => s + (counts[f.name] || 0), 0);
+                totalAssigned += assigned;
+                const diff = assigned - target;
+                const status = diff === 0
+                    ? `<span class="text-emerald-600 font-semibold">✓ 딱 맞음</span>`
+                    : diff < 0
+                        ? `<span class="text-amber-600 font-semibold">${-diff}회 부족</span>`
+                        : `<span class="text-red-500 font-semibold">${diff}회 초과</span>`;
+
+                const rows = frags.map(f => {
+                    const c = counts[f.name] || 0;
+                    const ml = c * DROP_ML;
+                    return `
+                        <div class="flex items-center gap-2 py-1.5">
+                            <span class="w-2 h-2 rounded-full ${n.dot} shrink-0"></span>
+                            <span class="font-medium text-gray-800">${f.name}</span>
+                            <span class="text-[11px] text-gray-400 hidden xs:inline">${f.family}</span>
+                            <span class="ml-auto flex items-center gap-2">
+                                <span class="inline-flex items-center rounded-lg border border-gray-300 bg-white overflow-hidden">
+                                    <button data-act="dec" data-name="${f.name}" class="step-btn w-8 h-8 text-lg text-gray-600 hover:bg-gray-100 leading-none">−</button>
+                                    <span class="w-10 text-center font-bold text-gray-900">${c}<span class="text-[11px] font-normal text-gray-400">회</span></span>
+                                    <button data-act="inc" data-name="${f.name}" class="step-btn w-8 h-8 text-lg text-gray-600 hover:bg-gray-100 leading-none">+</button>
+                                </span>
+                                <span class="w-14 text-right text-xs text-gray-400">≈ ${fmt(ml)}ml</span>
+                            </span>
+                        </div>`;
+                }).join('');
+
+                return `
+                    <div class="rounded-lg border ${n.soft} px-3 py-2">
+                        <div class="flex items-center gap-1.5 mb-1 pb-1 border-b border-white/60">
+                            <span>${n.emoji}</span>
+                            <span class="font-bold ${n.head}">${n.ko}</span>
+                            <span class="text-xs text-gray-500">목표 ${target}회 · 배정 ${assigned}회</span>
+                            <span class="text-xs ml-1">${status}</span>
+                            <button data-fill="${n.key}" class="ml-auto text-[11px] text-purple-600 border border-purple-200 bg-white hover:bg-purple-50 px-2 py-0.5 rounded-full">고르게 채우기</button>
+                        </div>
+                        ${rows}
+                    </div>`;
+            }).join('');
+
+            // 총 용량 & 오차범위
+            const est = totalAssigned * DROP_ML;
+            const tol = totalAssigned * DROP_TOL;
+            const lo = est - tol, hi = est + tol;
+            const matched = totalAssigned === totalTarget;
+
+            const totalNote = matched
+                ? `<span class="text-purple-100">목표 ${totalTarget}회와 일치 ✓</span>`
+                : `<span class="text-yellow-200">목표 ${totalTarget}회와 ${Math.abs(totalTarget - totalAssigned)}회 차이</span>`;
+
+            resultEl.innerHTML = `
+                <div class="rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white p-4 mb-3 shadow-sm">
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <div class="text-xs text-purple-100">총 스포이드</div>
+                            <div class="text-2xl font-bold">${totalAssigned}<span class="text-base font-medium">회</span></div>
+                            <div class="text-[11px] mt-0.5">${totalNote}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-purple-100">예상 용량</div>
+                            <div class="text-2xl font-bold">≈ ${fmt(est)}<span class="text-base font-medium">ml</span></div>
+                            <div class="text-[11px] text-purple-100 mt-0.5">오차범위 ±${fmt(tol)}ml</div>
+                        </div>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-white/25 text-[11px] text-purple-100">
+                        📏 실제 약 ${fmt(lo)} ~ ${fmt(hi)}ml · 스포이드 1회 ≈ ${DROP_ML}ml (10ml 병에 약 1ml 여유)
+                    </div>
+                </div>
+                <div class="space-y-2">${noteBlocks}</div>
+                <div class="flex gap-2 mt-3">
+                    <button id="autoBtn" class="flex-1 bg-purple-500 hover:bg-purple-600 active:scale-95 text-white text-sm font-medium py-2.5 rounded-lg transition">
+                        ✨ 목표대로 고르게 자동 채우기
+                    </button>
+                </div>
+                <div class="flex gap-2 mt-2">
+                    <button id="copyBtn" class="flex-1 bg-gray-800 hover:bg-gray-900 active:scale-95 text-white text-sm font-medium py-2.5 rounded-lg transition">
+                        📋 레시피 복사
+                    </button>
+                    <button id="resetBtn" class="px-4 bg-white border border-gray-300 hover:bg-gray-100 active:scale-95 text-gray-600 text-sm font-medium py-2.5 rounded-lg transition">
+                        초기화
+                    </button>
+                </div>`;
+        }
+
+        // 레시피 텍스트 (복사용) — 워크시트 '향료 양 계산하기' 형식
+        function recipeText() {
+            const b = BLENDS[currentBlend], drops = b.drops;
+            let totalAssigned = 0;
+            const lines = [`[${b.label} 블랜딩] 10ml 기준`];
+            NOTES.forEach(n => {
+                const frags = selectedInNote(n.key);
+                if (!frags.length) return;
+                const assigned = frags.reduce((s, f) => s + (counts[f.name] || 0), 0);
+                totalAssigned += assigned;
+                lines.push(`\n${n.ko === '탑 노트' ? 'Top' : n.ko === '미들 노트' ? 'Middle' : 'Base'} ${drops[n.key]}회`);
+                frags.forEach(f => lines.push(`  - ${f.name} ${counts[f.name] || 0}회`));
+            });
+            const est = totalAssigned * DROP_ML, tol = totalAssigned * DROP_TOL;
+            lines.push(`\n총 ${totalAssigned}회 ≈ ${fmt(est)}ml (오차 ±${fmt(tol)}ml)`);
+            return lines.join('\n');
+        }
+
+        // ─────────────────────────────────────────────
+        //  렌더 & 이벤트
+        // ─────────────────────────────────────────────
+        function renderAll() { renderBlendCards(); renderNoteGroups(); renderResult(); }
+
+        // 비율 변경 → 목표가 바뀌므로 전체 고르게 재분배
+        blendCardsEl.addEventListener('click', e => {
+            const btn = e.target.closest('.blend-card');
+            if (!btn) return;
+            currentBlend = btn.dataset.blend;
+            autoFillAll();
+            renderAll();
+        });
+
+        // 향료 선택/해제 → 해당 노트 고르게 재분배
+        noteGroupsEl.addEventListener('click', e => {
+            const btn = e.target.closest('.chip');
+            if (!btn) return;
+            const name = btn.dataset.name;
+            const f = FRAGRANCES.find(x => x.name === name);
+            if (selected.has(name)) { selected.delete(name); delete counts[name]; }
+            else { selected.add(name); }
+            autoFillNote(f.note);
+            renderNoteGroups();
+            renderResult();
+        });
+
+        // STEP3 내부 조작 (스포이드 +/- , 노트별 고르게, 자동/복사/초기화)
+        resultEl.addEventListener('click', async e => {
+            const step = e.target.closest('.step-btn');
+            if (step) {
+                const name = step.dataset.name;
+                const cur = counts[name] || 0;
+                counts[name] = step.dataset.act === 'inc' ? cur + 1 : Math.max(0, cur - 1);
+                renderResult();
+                return;
+            }
+            const fill = e.target.closest('[data-fill]');
+            if (fill) { autoFillNote(fill.dataset.fill); renderResult(); return; }
+
+            if (e.target.closest('#autoBtn')) { autoFillAll(); renderResult(); showToast('목표대로 고르게 채웠어요'); return; }
+
+            if (e.target.closest('#resetBtn')) {
+                selected.clear();
+                for (const k in counts) delete counts[k];
+                renderAll();
+                showToast('초기화했어요');
+                return;
+            }
+            if (e.target.closest('#copyBtn')) {
+                const text = recipeText();
+                try {
+                    if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
+                    else {
+                        const ta = document.createElement('textarea');
+                        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                        document.body.appendChild(ta); ta.select();
+                        document.execCommand('copy'); document.body.removeChild(ta);
+                    }
+                    showToast('레시피가 복사되었어요');
+                } catch (err) { showToast('복사에 실패했어요'); }
+            }
+        });
+
+        let toastTimer;
+        function showToast(msg) {
+            const toastEl = document.getElementById('toast');
+            toastEl.textContent = msg;
+            toastEl.classList.remove('opacity-0'); toastEl.classList.add('opacity-100');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toastEl.classList.add('opacity-0'); toastEl.classList.remove('opacity-100');
+            }, 1500);
+        }
+
+        renderAll();
+    </script>
+</body>
+</html>
