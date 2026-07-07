@@ -11,6 +11,8 @@
         .chip:active { transform: scale(.96); }
         .step-btn { transition: transform .08s ease; }
         .step-btn:active { transform: scale(.9); }
+        /* 화면 전환용 안전장치 (Tailwind 미로딩 시에도 동작) */
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen p-4">
@@ -22,6 +24,9 @@
             <h1 class="text-2xl font-bold text-gray-800">향수 블랜딩 계산기</h1>
             <p class="text-sm text-gray-500 mt-1">비율 → 향료 선택 → 향료별 스포이드 횟수까지 계산해드려요</p>
         </header>
+
+      <!-- ===== 설정 화면 (레시피 만들기) ===== -->
+      <div id="setupView">
 
         <!-- STEP 1. 블랜딩 비율 -->
         <section class="mb-5">
@@ -49,6 +54,11 @@
             </h2>
             <div id="result"></div>
         </section>
+
+      </div><!-- /setupView -->
+
+      <!-- ===== 카운팅 화면 (넣으면서 세기) ===== -->
+      <div id="countView" class="hidden"></div>
 
         <footer class="text-center text-xs text-gray-300 mt-8 pb-6">채아힐링센터 컬러테라피</footer>
     </div>
@@ -115,7 +125,9 @@
         // ─────────────────────────────────────────────
         let currentBlend = 'rich';         // 워크시트 예시가 '리치' 라 기본값도 리치
         const selected = new Set();        // 선택된 향료 이름
-        const counts = {};                 // { 향료이름: 배정 횟수 }
+        const counts = {};                 // { 향료이름: 배정(목표) 횟수 }
+        let mode = 'setup';                // 'setup' | 'count'
+        const added = {};                  // { 향료이름: 실제로 넣은 횟수 } (카운팅 모드)
 
         const byNote = { Top: [], Middle: [], Base: [] };
         FRAGRANCES.forEach(f => { if (byNote[f.note]) byNote[f.note].push(f); });
@@ -291,7 +303,10 @@
                     </div>
                 </div>
                 <div class="space-y-2">${noteBlocks}</div>
-                <div class="flex gap-2 mt-3">
+                <button id="startCountBtn" class="w-full mt-3 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-base font-bold py-3 rounded-xl transition shadow-sm">
+                    🧪 넣으면서 카운팅 시작 <span class="font-normal text-emerald-100 text-sm">(총 ${totalAssigned}방울)</span>
+                </button>
+                <div class="flex gap-2 mt-2">
                     <button id="autoBtn" class="flex-1 bg-purple-500 hover:bg-purple-600 active:scale-95 text-white text-sm font-medium py-2.5 rounded-lg transition">
                         ✨ 목표대로 고르게 자동 채우기
                     </button>
@@ -323,6 +338,114 @@
             lines.push(`\n총 ${totalAssigned}회 ≈ ${fmt(est)}ml (오차 ±${fmt(tol)}ml)`);
             return lines.join('\n');
         }
+
+        // ─────────────────────────────────────────────
+        //  카운팅 모드 — 넣으면서 세기
+        // ─────────────────────────────────────────────
+        const setupView = document.getElementById('setupView');
+        const countView = document.getElementById('countView');
+
+        // 목표(counts)가 있는 향료만, 노트 순서대로
+        function planList() {
+            const out = [];
+            NOTES.forEach(n => selectedInNote(n.key).forEach(f => {
+                const t = counts[f.name] || 0;
+                if (t > 0) out.push({ ...f, target: t, noteKo: n.ko, note: n });
+            }));
+            return out;
+        }
+
+        function startCount() {
+            const plan = planList();
+            if (!plan.length) { showToast('먼저 향료 횟수를 정해주세요'); return; }
+            plan.forEach(p => { if (added[p.name] == null) added[p.name] = 0; });
+            mode = 'count';
+            setupView.classList.add('hidden');
+            countView.classList.remove('hidden');
+            renderCount();
+            window.scrollTo(0, 0);
+        }
+        function exitCount() {
+            mode = 'setup';
+            countView.classList.add('hidden');
+            setupView.classList.remove('hidden');
+        }
+
+        function renderCount() {
+            const plan = planList();
+            const totalTarget = plan.reduce((s, p) => s + p.target, 0);
+            const totalAdded  = plan.reduce((s, p) => s + (added[p.name] || 0), 0);
+            const allDone = totalAdded === totalTarget && plan.every(p => (added[p.name] || 0) === p.target);
+            const pct = totalTarget ? Math.round(totalAdded / totalTarget * 100) : 0;
+            const ml = totalAdded * DROP_ML;
+
+            const cards = plan.map(p => {
+                const a = added[p.name] || 0;
+                const done = a >= p.target;
+                const over = a > p.target;
+                return `
+                    <div class="rounded-xl border-2 ${done ? 'border-emerald-400 bg-emerald-50' : p.note.soft} p-3">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-2.5 h-2.5 rounded-full ${p.note.dot}"></span>
+                            <span class="font-bold text-gray-800">${p.name}</span>
+                            <span class="text-[11px] text-gray-400">${p.noteKo} · ${p.family}</span>
+                            ${done ? '<span class="ml-auto text-emerald-600 font-bold text-sm">✓ 완료</span>'
+                                   : `<span class="ml-auto text-sm ${over ? 'text-red-500' : 'text-gray-500'}">${p.target - a > 0 ? (p.target - a) + '방울 남음' : ''}</span>`}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button data-cnt="dec" data-name="${p.name}"
+                                class="step-btn w-11 h-11 rounded-xl border border-gray-300 bg-white text-2xl text-gray-500 hover:bg-gray-100 leading-none shrink-0">−</button>
+                            <button data-cnt="inc" data-name="${p.name}"
+                                class="step-btn flex-1 h-14 rounded-xl ${done ? 'bg-emerald-500' : 'bg-purple-500'} text-white active:scale-95 transition flex items-center justify-center gap-2">
+                                <span class="text-2xl font-extrabold">${a}</span>
+                                <span class="text-base opacity-80">/ ${p.target}회</span>
+                                <span class="text-xs opacity-70 ml-1">${done ? '' : '＋ 탭'}</span>
+                            </button>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            countView.innerHTML = `
+                <div class="sticky top-2 z-10 rounded-xl ${allDone ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' : 'bg-gradient-to-br from-purple-500 to-purple-600'} text-white p-4 mb-3 shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-xs text-white/80">${BLENDS[currentBlend].label} 블랜딩 · 넣는 중</div>
+                            <div class="text-2xl font-bold">${totalAdded} <span class="text-base font-medium text-white/80">/ ${totalTarget}방울</span></div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-white/80">현재 용량</div>
+                            <div class="text-2xl font-bold">≈ ${fmt(ml)}<span class="text-base font-medium">ml</span></div>
+                        </div>
+                    </div>
+                    <div class="mt-2 h-2 rounded-full bg-white/25 overflow-hidden">
+                        <div class="h-full bg-white transition-all" style="width:${pct}%"></div>
+                    </div>
+                    ${allDone ? '<div class="mt-2 text-center font-bold">🎉 완성! 약 ' + fmt(ml) + 'ml 채웠어요</div>' : ''}
+                </div>
+                <p class="text-xs text-gray-500 mb-2 px-1">향료를 넣을 때마다 큰 버튼을 눌러 세어보세요. 잘못 눌렀으면 − 로 되돌려요.</p>
+                <div class="space-y-2">${cards}</div>
+                <div class="flex gap-2 mt-4">
+                    <button id="backBtn" class="flex-1 bg-white border border-gray-300 hover:bg-gray-100 active:scale-95 text-gray-700 text-sm font-medium py-2.5 rounded-lg transition">← 레시피 수정</button>
+                    <button id="recountBtn" class="px-4 bg-white border border-gray-300 hover:bg-gray-100 active:scale-95 text-gray-600 text-sm font-medium py-2.5 rounded-lg transition">카운트 0으로</button>
+                </div>`;
+        }
+
+        countView.addEventListener('click', e => {
+            const btn = e.target.closest('[data-cnt]');
+            if (btn) {
+                const name = btn.dataset.name;
+                const cur = added[name] || 0;
+                added[name] = btn.dataset.cnt === 'inc' ? cur + 1 : Math.max(0, cur - 1);
+                renderCount();
+                return;
+            }
+            if (e.target.closest('#backBtn')) { exitCount(); return; }
+            if (e.target.closest('#recountBtn')) {
+                planList().forEach(p => { added[p.name] = 0; });
+                renderCount();
+                showToast('카운트를 0으로 되돌렸어요');
+            }
+        });
 
         // ─────────────────────────────────────────────
         //  렌더 & 이벤트
@@ -366,9 +489,12 @@
 
             if (e.target.closest('#autoBtn')) { autoFillAll(); renderResult(); showToast('목표대로 고르게 채웠어요'); return; }
 
+            if (e.target.closest('#startCountBtn')) { startCount(); return; }
+
             if (e.target.closest('#resetBtn')) {
                 selected.clear();
                 for (const k in counts) delete counts[k];
+                for (const k in added) delete added[k];
                 renderAll();
                 showToast('초기화했어요');
                 return;
