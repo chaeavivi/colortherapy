@@ -305,7 +305,7 @@
                 </div>
                 <div class="space-y-2">${noteBlocks}</div>
                 <button id="startCountBtn" class="w-full mt-3 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-base font-bold py-3 rounded-xl transition shadow-sm">
-                    🧪 넣으면서 카운팅 시작 <span class="font-normal text-emerald-100 text-sm">(총 ${totalAssigned}방울)</span>
+                    🧪 넣으면서 카운팅 시작 <span class="font-normal text-emerald-100 text-sm">(총 ${totalAssigned}회)</span>
                 </button>
                 <div class="flex gap-2 mt-2">
                     <button id="autoBtn" class="flex-1 bg-purple-500 hover:bg-purple-600 active:scale-95 text-white text-sm font-medium py-2.5 rounded-lg transition">
@@ -393,7 +393,7 @@
                             <span class="font-bold text-gray-800">${p.name}</span>
                             <span class="text-[11px] text-gray-400">${p.noteKo} · ${p.family}</span>
                             ${done ? '<span class="ml-auto text-emerald-600 font-bold text-sm">✓ 완료</span>'
-                                   : `<span class="ml-auto text-sm ${over ? 'text-red-500' : 'text-gray-500'}">${p.target - a > 0 ? (p.target - a) + '방울 남음' : ''}</span>`}
+                                   : `<span class="ml-auto text-sm ${over ? 'text-red-500' : 'text-gray-500'}">${p.target - a > 0 ? (p.target - a) + '회 남음' : ''}</span>`}
                         </div>
                         <div class="flex items-center gap-3">
                             <button data-cnt="dec" data-name="${p.name}"
@@ -413,7 +413,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <div class="text-xs text-white/80">${BLENDS[currentBlend].label} 블랜딩 · 넣는 중</div>
-                            <div class="text-2xl font-bold">${totalAdded} <span class="text-base font-medium text-white/80">/ ${totalTarget}방울</span></div>
+                            <div class="text-2xl font-bold">${totalAdded} <span class="text-base font-medium text-white/80">/ ${totalTarget}회</span></div>
                         </div>
                         <div class="text-right">
                             <div class="text-xs text-white/80">현재 용량</div>
@@ -429,9 +429,9 @@
                 ${allDone ? '' : `
                 <button id="roundBtn" class="w-full mb-3 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-base font-bold py-3.5 rounded-xl transition shadow flex items-center justify-center gap-2">
                     🔄 전체 한 바퀴 +1
-                    <span class="text-sm font-normal text-purple-100">(남은 ${remaining}종에 한 방울씩)</span>
+                    <span class="text-sm font-normal text-purple-100">(남은 ${remaining}종에 1회씩)</span>
                 </button>`}
-                <p class="text-xs text-gray-500 mb-2 px-1">🔄 <b>전체 한 바퀴 +1</b> 로 향료마다 한 방울씩 돌아가며 넣으세요. 개별 조절은 아래 +/− 로 하면 됩니다.</p>
+                <p class="text-xs text-gray-500 mb-2 px-1">🔄 <b>전체 한 바퀴 +1</b> 로 향료마다 1회씩 돌아가며 넣으세요. 개별 조절은 아래 +/− 로 하면 됩니다.</p>
                 <div class="space-y-2">${cards}</div>
                 <div class="flex gap-2 mt-4">
                     <button id="backBtn" class="flex-1 bg-white border border-gray-300 hover:bg-gray-100 active:scale-95 text-gray-700 text-sm font-medium py-2.5 rounded-lg transition">← 레시피 수정</button>
@@ -453,7 +453,7 @@
                 planList().forEach(p => {
                     if ((added[p.name] || 0) < p.target) { added[p.name] = (added[p.name] || 0) + 1; changed++; }
                 });
-                if (changed) { roundCount++; renderCount(); showToast(`${roundCount}바퀴째 · ${changed}종에 한 방울씩`); }
+                if (changed) { roundCount++; renderCount(); showToast(`${roundCount}바퀴째 · ${changed}종에 1회씩`); }
                 return;
             }
             if (e.target.closest('#backBtn')) { exitCount(); return; }
