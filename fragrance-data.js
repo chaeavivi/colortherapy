@@ -13,6 +13,8 @@ window.FRAGRANCES = [
     { name: '라임', code: 'PB68' },
     { name: '진저', code: 'PB23' },
     { name: '자스민', code: 'PB18' },
+    { name: '티로즈', code: 'PB57' },
+    { name: '오크모스', code: 'PB14' },
     { name: '허니써클', code: 'PB13' },
     { name: '수선화', code: 'PB28' },
     { name: '프리지아', code: 'PB05' },
