@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>향수 블랜딩 계산기 | 채아힐링센터</title>
+    <title>향수 블랜딩 계산기 (20ml) | 채아힐링센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
@@ -21,9 +21,9 @@
 
         <!-- 헤더 -->
         <header class="text-center mb-5 pt-4">
-            <h1 class="text-2xl font-bold text-gray-800">향수 블랜딩 계산기</h1>
+            <h1 class="text-2xl font-bold text-gray-800">향수 블랜딩 계산기 <span class="text-purple-600">20ml</span></h1>
             <p class="text-sm text-gray-500 mt-1">비율 → 향료 선택 → 향료별 스포이드 횟수까지 계산해드려요</p>
-            <a href="blending20.html" class="inline-block mt-2 text-xs text-purple-600 border border-purple-200 bg-purple-50 hover:bg-purple-100 px-3 py-1 rounded-full transition">🧪 20ml 계산기로 전환</a>
+            <a href="blending.html" class="inline-block mt-2 text-xs text-purple-600 border border-purple-200 bg-purple-50 hover:bg-purple-100 px-3 py-1 rounded-full transition">🧪 10ml 계산기로 전환</a>
         </header>
 
       <!-- ===== 설정 화면 (레시피 만들기) ===== -->
@@ -33,7 +33,7 @@
         <section class="mb-5">
             <h2 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
                 <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-500 text-white text-xs">1</span>
-                블랜딩 비율 선택 <span class="text-gray-400 font-normal">(10ml 기준)</span>
+                블랜딩 비율 선택 <span class="text-gray-400 font-normal">(20ml 기준)</span>
             </h2>
             <div id="blendCards" class="grid grid-cols-3 gap-2"></div>
         </section>
@@ -98,15 +98,15 @@
         // ─────────────────────────────────────────────
         //  블랜딩 기준값
         // ─────────────────────────────────────────────
-        // 워크시트 비율/횟수 그대로. 스포이드 1회 ≈ 0.45ml → 총 20회 ≈ 9ml.
-        // (10ml 기준 횟수를 그대로 쓰되 실제로는 약 9ml → 10ml 병에 여유)
+        // 10ml판(총 20회)의 2배. 스포이드 1회 ≈ 0.45ml → 총 40회 ≈ 18ml.
+        // (20ml 기준. 실제로는 약 18ml → 20ml 병에 약 2ml 여유)
         const DROP_ML  = 0.45;   // 1회당 평균 용량(ml)
         const DROP_TOL = 0.05;   // 1회당 오차(±ml)  → 실제 0.40~0.50ml
 
         const BLENDS = {
-            balance: { label: '밸런스', sub: '탑·베이스 균형',    drops: { Top: 5, Middle: 10, Base: 5 } },
-            fresh:   { label: '프레시', sub: '탑 강조 · 상쾌',    drops: { Top: 6, Middle: 10, Base: 4 } },
-            rich:    { label: '리치',   sub: '베이스 강조 · 묵직', drops: { Top: 4, Middle: 10, Base: 6 } },
+            balance: { label: '밸런스', sub: '탑·베이스 균형',    drops: { Top: 10, Middle: 20, Base: 10 } },
+            fresh:   { label: '프레시', sub: '탑 강조 · 상쾌',    drops: { Top: 12, Middle: 20, Base: 8 } },
+            rich:    { label: '리치',   sub: '베이스 강조 · 묵직', drops: { Top: 8, Middle: 20, Base: 12 } },
         };
 
         const NOTES = [
@@ -301,7 +301,7 @@
                         </div>
                     </div>
                     <div class="mt-2 pt-2 border-t border-white/25 text-[11px] text-purple-100">
-                        📏 실제 약 ${fmt(lo)} ~ ${fmt(hi)}ml · 스포이드 1회 ≈ ${DROP_ML}ml (10ml 병에 약 1ml 여유)
+                        📏 실제 약 ${fmt(lo)} ~ ${fmt(hi)}ml · 스포이드 1회 ≈ ${DROP_ML}ml (20ml 병에 약 2ml 여유)
                     </div>
                 </div>
                 <div class="space-y-2">${noteBlocks}</div>
@@ -327,7 +327,7 @@
         function recipeText() {
             const b = BLENDS[currentBlend], drops = b.drops;
             let totalAssigned = 0;
-            const lines = [`[${b.label} 블랜딩] 10ml 기준`];
+            const lines = [`[${b.label} 블랜딩] 20ml 기준`];
             NOTES.forEach(n => {
                 const frags = selectedInNote(n.key);
                 if (!frags.length) return;
