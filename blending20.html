@@ -98,15 +98,15 @@
         // ─────────────────────────────────────────────
         //  블랜딩 기준값
         // ─────────────────────────────────────────────
-        // 10ml판(총 20회)의 2배. 스포이드 1회 ≈ 0.45ml → 총 40회 ≈ 18ml.
-        // (20ml 기준. 실제로는 약 18ml → 20ml 병에 약 2ml 여유)
-        const DROP_ML  = 0.45;   // 1회당 평균 용량(ml)
+        // 스포이드 1회 ≈ 0.5ml → 총 39회 ≈ 19.5ml (20ml 병에 약 0.5ml 여유).
+        // 10ml판(총 19회)의 약 2배. 미들 19회 기준으로 총 39회.
+        const DROP_ML  = 0.5;    // 1회당 평균 용량(ml)
         const DROP_TOL = 0.05;   // 1회당 오차(±ml)  → 실제 0.40~0.50ml
 
         const BLENDS = {
-            balance: { label: '밸런스', sub: '탑·베이스 균형',    drops: { Top: 10, Middle: 20, Base: 10 } },
-            fresh:   { label: '프레시', sub: '탑 강조 · 상쾌',    drops: { Top: 12, Middle: 20, Base: 8 } },
-            rich:    { label: '리치',   sub: '베이스 강조 · 묵직', drops: { Top: 8, Middle: 20, Base: 12 } },
+            balance: { label: '밸런스', sub: '탑·베이스 균형',    drops: { Top: 10, Middle: 19, Base: 10 } },
+            fresh:   { label: '프레시', sub: '탑 강조 · 상쾌',    drops: { Top: 12, Middle: 19, Base: 8 } },
+            rich:    { label: '리치',   sub: '베이스 강조 · 묵직', drops: { Top: 8, Middle: 19, Base: 12 } },
         };
 
         const NOTES = [
@@ -301,7 +301,7 @@
                         </div>
                     </div>
                     <div class="mt-2 pt-2 border-t border-white/25 text-[11px] text-purple-100">
-                        📏 실제 약 ${fmt(lo)} ~ ${fmt(hi)}ml · 스포이드 1회 ≈ ${DROP_ML}ml (20ml 병에 약 2ml 여유)
+                        📏 실제 약 ${fmt(lo)} ~ ${fmt(hi)}ml · 스포이드 1회 ≈ ${DROP_ML}ml (20ml 병에 약 0.5ml 여유)
                     </div>
                 </div>
                 <div class="space-y-2">${noteBlocks}</div>
