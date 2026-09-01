@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>강의계획서 생성기 - 채아힐링센터</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --purple: #6E5A8A;
+  --purple-soft: #9d8bb8;
+  --bg1: #E9D7F2;
+  --bg2: #FCE9EF;
+  --card: rgba(253, 247, 255, 0.95);
+  --pink: #F8BBD9;
+  --kakao: #FFE59C;
+  --line: #e3d8ee;
+  --ink: #2f2a38;
+}
+
+body {
+  font-family: 'Segoe UI', 'Malgun Gothic', '맑은 고딕', Tahoma, sans-serif;
+  background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
+  min-height: 100vh; color: #4a4358; padding: 24px 16px 80px;
+}
+
+.app-title { text-align: center; color: var(--purple); margin-bottom: 22px; }
+.app-title h1 { font-size: 1.55rem; letter-spacing: -0.5px; }
+.app-title p { font-size: 0.9rem; color: var(--purple-soft); margin-top: 6px; }
+
+/* ===== Toolbar ===== */
+.toolbar {
+  max-width: 1180px; margin: 0 auto 18px;
+  background: var(--card); border: 1px solid rgba(110,90,138,.15);
+  border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 28px rgba(110,90,138,.12);
+  display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;
+}
+.tool-group { display: flex; flex-direction: column; gap: 5px; }
+.tool-group label { font-size: .72rem; font-weight: 700; color: var(--purple); }
+.tool-group select { padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: #4a4358; font-size: .9rem; min-width: 240px; cursor: pointer; }
+.seg { display: inline-flex; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.seg button { border: none; background: transparent; padding: 9px 16px; font-size: .85rem; font-weight: 600; color: var(--purple-soft); cursor: pointer; transition: .2s; }
+.seg button.active { background: linear-gradient(135deg,#F8BBD9,#F4A6CD); color: #7A2F3F; }
+.btn { border: none; border-radius: 12px; padding: 10px 16px; font-size: .85rem; font-weight: 600; cursor: pointer; transition: .2s; white-space: nowrap; }
+.btn:hover { transform: translateY(-2px); }
+.btn-ghost { background: #fff; border: 1px solid var(--line); color: var(--purple); }
+.btn-print { background: var(--kakao); color: #5E4C00; }
+.btn-word { background: #dbe7fb; color: #1f4e79; }
+.spacer { flex: 1 1 auto; }
+.tool-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+
+/* ===== Layout ===== */
+.workspace { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+
+/* ===== Editor ===== */
+.editor { background: var(--card); border: 1px solid rgba(110,90,138,.15); border-radius: 18px; padding: 20px; box-shadow: 0 8px 28px rgba(110,90,138,.1); }
+.sec { margin-bottom: 22px; }
+.sec h3 { font-size: .95rem; color: var(--purple); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--line); display: flex; align-items: center; gap: 7px; }
+.field { margin-bottom: 12px; }
+.field label { display: flex; align-items: center; gap: 6px; font-size: .76rem; font-weight: 700; color: var(--purple); margin-bottom: 5px; }
+.field input, .field textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; font-size: .88rem; font-family: inherit; color: #4a4358; background: #fff; }
+.field textarea { resize: vertical; min-height: 56px; line-height: 1.5; }
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--purple-soft); }
+.label-select { font-size: .72rem; font-weight: 700; color: var(--purple); border: 1px solid var(--line); border-radius: 8px; padding: 2px 6px; background: #fff; cursor: pointer; }
+.snippet { font-size: .68rem; font-weight: 600; color: #7a6e90; border: 1px solid var(--line); border-radius: 8px; padding: 2px 6px; background: #faf6ff; cursor: pointer; margin-left: auto; max-width: 160px; }
+.snippet:hover { border-color: var(--purple-soft); }
+.sched-helper { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.sched-helper input { padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; font-size: .82rem; font-family: inherit; background: #fff; color: #4a4358; }
+.sched-helper .tilde { color: var(--purple-soft); font-weight: 700; }
+.hint { font-size: .7rem; color: var(--purple-soft); margin-top: 4px; }
+
+/* curriculum rows */
+.curr-row { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 12px; background: rgba(255,255,255,.6); }
+.curr-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+.curr-no { background: linear-gradient(135deg,#F8BBD9,#F4A6CD); color: #7A2F3F; font-weight: 700; font-size: .8rem; padding: 4px 12px; border-radius: 20px; white-space: nowrap; }
+.row-move { display: flex; gap: 4px; }
+.icon-btn { border: none; background: #efe7f7; color: var(--purple); border-radius: 8px; width: 28px; height: 28px; cursor: pointer; font-size: .95rem; line-height: 1; }
+.icon-btn:hover { background: #e1d2f0; }
+.row-del { background: #fbe4ec; color: #b14a6a; }
+.row-del:hover { background: #f6c9d9; }
+.curr-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+.curr-grid input, .curr-grid textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; font-size: .82rem; font-family: inherit; background: #fff; }
+.curr-grid textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+.mini-label { font-size: .68rem; font-weight: 700; color: var(--purple-soft); margin-bottom: 3px; display: block; }
+.add-row { width: 100%; padding: 11px; border: 2px dashed var(--purple-soft); background: transparent; color: var(--purple); border-radius: 12px; font-weight: 700; cursor: pointer; font-size: .85rem; }
+.add-row:hover { background: rgba(157,139,184,.1); }
+
+/* 시간 계산 & 검증 */
+.calc-box { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; background: rgba(255,255,255,.6); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+.calc-item { font-size: .82rem; color: #4a4358; }
+.calc-item b { color: var(--purple); font-size: .95rem; }
+.calc-box input[type=number] { width: 92px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font-family: inherit; font-size: .82rem; }
+.calc-diff { font-weight: 700; font-size: .82rem; }
+.calc-diff.ok { color: #2e8b57; }
+.calc-diff.over { color: #c0392b; }
+.calc-diff.under { color: #b9770e; }
+.btn-mini { border: none; border-radius: 9px; padding: 7px 12px; font-size: .78rem; font-weight: 700; cursor: pointer; background: #efe7f7; color: var(--purple); }
+.btn-mini:hover { background: #e1d2f0; }
+.valid-list { display: flex; flex-direction: column; gap: 6px; }
+.valid-item { font-size: .8rem; padding: 7px 11px; border-radius: 9px; display: flex; gap: 7px; align-items: flex-start; }
+.valid-item.err { background: #fdecef; color: #b03050; }
+.valid-item.warn { background: #fff5e2; color: #9a6a12; }
+.valid-item.ok { background: #eafaf0; color: #2e8b57; }
+
+/* ===== Preview / Document ===== */
+.preview-wrap { position: sticky; top: 16px; }
+.preview-bar { font-size: .72rem; color: var(--purple-soft); text-align: center; margin-bottom: 8px; }
+.doc { background: #fff; border-radius: 14px; padding: 40px 42px; box-shadow: 0 12px 36px rgba(110,90,138,.18); color: var(--ink); line-height: 1.5; }
+.doc-brand { text-align: center; font-size: .78rem; color: var(--purple-soft); letter-spacing: 1px; margin-bottom: 4px; }
+.doc-title { text-align: center; font-size: 1.7rem; font-weight: 800; color: var(--purple); letter-spacing: 8px; margin-bottom: 6px; }
+.doc-badge { display: block; text-align: center; margin-bottom: 18px; }
+.doc-badge span { display: inline-block; font-size: .72rem; font-weight: 700; background: #f3ecf9; color: var(--purple); padding: 3px 14px; border-radius: 20px; }
+table.info { width: 100%; border-collapse: collapse; font-size: .85rem; margin-bottom: 22px; }
+table.info th, table.info td { border: 1px solid #c9bcdd; padding: 9px 12px; vertical-align: middle; }
+table.info th { background: #f3ecf9; color: var(--purple); font-weight: 700; width: 96px; text-align: center; white-space: nowrap; letter-spacing: 2px; }
+table.info td { text-align: left; }
+.sec-title { text-align: center; font-size: 1.05rem; font-weight: 800; color: var(--purple); letter-spacing: 6px; margin: 8px 0 12px; }
+table.curr { width: 100%; border-collapse: collapse; font-size: .82rem; }
+table.curr th, table.curr td { border: 1px solid #c9bcdd; padding: 9px 10px; vertical-align: top; }
+table.curr thead th { background: #f3ecf9; color: var(--purple); font-weight: 700; text-align: center; }
+table.curr td.time { text-align: center; white-space: nowrap; width: 92px; font-weight: 600; color: #5b5170; }
+table.curr td.note { text-align: center; white-space: pre-wrap; width: 80px; color: #6b6478; font-size: .78rem; }
+.prog-title { font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+.prog-list { list-style: none; padding-left: 4px; }
+.prog-list li { padding: 1px 0 1px 12px; position: relative; color: #4a4456; }
+.prog-list li:before { content: "-"; position: absolute; left: 0; color: var(--purple-soft); }
+.doc-foot { margin-top: 26px; padding-top: 14px; border-top: 1px dashed var(--line); font-size: .78rem; color: #6b6478; text-align: center; }
+.muted { color: #b3a9c2; font-style: italic; }
+
+@media (max-width: 900px) {
+  .workspace { grid-template-columns: 1fr; }
+  .preview-wrap { position: static; }
+}
+
+/* ===== Print ===== */
+@media print {
+  body { background: #fff; padding: 0; }
+  .app-title, .toolbar, .editor, .preview-bar { display: none !important; }
+  .workspace { display: block; max-width: none; }
+  .preview-wrap { position: static; }
+  .doc { box-shadow: none; border-radius: 0; padding: 0; }
+  table.info, table.curr { font-size: 11px; }
+  .sec-title, .doc-title { page-break-after: avoid; }
+  table.curr tr { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-title">
+  <h1>🎨 강의계획서 생성기</h1>
+  <p>채아힐링센터 · 템플릿을 고른 뒤 자유롭게 편집하세요</p>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="tool-group">
+    <label>템플릿 / 프로그램</label>
+    <select id="templateSelect"></select>
+  </div>
+  <div class="tool-group">
+    <label>수업 형태</label>
+    <div class="seg" id="modeSeg">
+      <button data-mode="single">단회 (1회)</button>
+      <button data-mode="multi">다회기</button>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="tool-actions">
+    <button class="btn btn-ghost" id="btnNew">＋ 새 프로그램</button>
+    <button class="btn btn-ghost" id="btnSave">💾 저장</button>
+    <button class="btn btn-ghost" id="btnExport">⬇ JSON</button>
+    <button class="btn btn-ghost" id="btnImport">⬆ 불러오기</button>
+    <button class="btn btn-print" id="btnPrint">🖨 인쇄 / PDF</button>
+    <button class="btn btn-word" id="btnWord">📄 Word 저장</button>
+  </div>
+</div>
+
+<div class="workspace">
+  <!-- ===== Editor ===== -->
+  <div class="editor">
+    <div class="sec">
+      <h3>📋 기본 정보</h3>
+      <div class="field">
+        <label>강의명</label>
+        <input type="text" data-bind="subject" placeholder="예) 셀프 진단 컬러테라피, 컬러로 보는 성격과 감정">
+      </div>
+      <div class="field">
+        <label>강사</label>
+        <input type="text" data-bind="teacher" placeholder="정민경 | 원주 채아힐링센터 대표">
+      </div>
+      <div class="field">
+        <label>일정</label>
+        <div class="sched-helper">
+          <input type="date" id="schedDate" title="날짜">
+          <input type="time" id="schedStart" title="시작 시간">
+          <span class="tilde">~</span>
+          <input type="time" id="schedEnd" title="종료 시간">
+        </div>
+        <input type="text" data-bind="schedule" placeholder="2025. 12. 22. (월) 14:00 ~ 16:00">
+        <div class="hint">날짜·시간을 고르면 자동으로 채워집니다. 다회기 등 복잡한 일정은 위 칸에 직접 입력하세요.</div>
+      </div>
+      <div class="field">
+        <label>대상 <span class="hint" style="font-weight:400">(선택)</span></label>
+        <input type="text" data-bind="target" placeholder="성인 / 청소년 / 임직원 등 (선택)">
+      </div>
+      <div class="field">
+        <label>장소 <span class="hint" style="font-weight:400">(선택)</span></label>
+        <input type="text" data-bind="place" placeholder="채아힐링센터 강의실 (선택)">
+      </div>
+      <div class="field">
+        <label>준비물
+          <select class="snippet" data-snip="materials" data-target="materials"></select>
+        </label>
+        <input type="text" data-bind="materials" placeholder="빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구">
+      </div>
+      <div class="field">
+        <label>
+          <select class="label-select" data-labelbind="goalLabel">
+            <option>강의목표</option><option>강의주제</option><option>강의목적</option>
+          </select>
+          <select class="snippet" data-snip="goal" data-target="goal"></select>
+        </label>
+        <textarea data-bind="goal" placeholder="컬러를 활용해 자신을 이해하고, 감정과 내면을 인식하며, 올바른 소통법과 스트레스 해소 방법을 배웁니다."></textarea>
+      </div>
+      <div class="field">
+        <label>
+          <select class="label-select" data-labelbind="effectLabel">
+            <option>강의효과</option><option>기대효과</option>
+          </select>
+          <select class="snippet" data-snip="effect" data-target="effect"></select>
+        </label>
+        <textarea data-bind="effect" placeholder="컬러를 통한 감정 해소와 정서적 안정, 자기이해의 향상을 경험합니다."></textarea>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>🗂 강의 진행 안내 (시간 · 프로그램 내용 · 비고)</h3>
+      <div id="currList"></div>
+      <div style="display:flex; gap:8px; align-items:stretch;">
+        <button class="add-row" id="addCurr" style="flex:1;">＋ 빈 순서 추가</button>
+        <select class="add-row" id="blockPick" style="flex:1; cursor:pointer;"></select>
+      </div>
+      <div class="hint" style="margin-top:6px">‘예시 블록 추가’를 고르면 자주 쓰는 프로그램 내용(레인보우프리즘, MBTI 분석 등)이 새 순서로 들어갑니다.</div>
+    </div>
+
+    <div class="sec">
+      <h3>⏱ 시간 배분 & 오류 검증</h3>
+      <div class="calc-box">
+        <div class="calc-item">합계 소요시간: <b id="calcTotal">–</b></div>
+        <div class="calc-item">목표 총시간(분):
+          <input type="number" min="0" step="5" data-bind="targetMin" placeholder="예: 120">
+        </div>
+        <span class="calc-diff" id="calcDiff"></span>
+        <button class="btn-mini" id="btnEven">⚖ 균등 배분</button>
+      </div>
+      <div class="valid-list" id="validList"></div>
+    </div>
+  </div>
+
+  <!-- ===== Preview ===== -->
+  <div class="preview-wrap">
+    <div class="preview-bar">미리보기 — 인쇄/PDF·Word로 그대로 출력됩니다</div>
+    <div class="doc" id="doc"></div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="application/json" style="display:none">
+
+<script>
+/* =========================================================
+   강의계획서 생성기 (채아힐링센터)
+   - 단일 HTML, 외부 의존성 없음
+   - 실제 채아힐링센터 강의계획서 양식 기반
+   - 저장(localStorage) / JSON / 인쇄(PDF) / Word(.doc)
+   - 일정 날짜·시간 자동 조합 / 예시 문구·블록 / 시간 계산 · 오류 검증
+========================================================= */
+
+const STORAGE_KEY = 'chaea_syllabus_v3';
+const DEFAULT_TEACHER = '정민경 | 원주 채아힐링센터 대표';
+const DEFAULT_MATERIALS = '빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구';
+
+function row(time, title, details, note) {
+  return { time: time||'', title: title||'', details: details||'', note: note||'' };
+}
+function emptyData(mode) {
+  return {
+    subject: '', teacher: DEFAULT_TEACHER, schedule: '', target: '', place: '',
+    materials: DEFAULT_MATERIALS,
+    goalLabel: '강의목표', goal: '', effectLabel: '강의효과', effect: '',
+    targetMin: '',
+    curriculum: mode === 'multi' ? [ row('1회기',''), row('2회기','') ] : [ row('',''), row('','') ]
+  };
+}
+
+// ---------- 실제 프로그램 기반 프리셋 ----------
+const PRESETS = {
+  blank_single: { name: '🆕 새 단회 강의 (빈 양식)', mode: 'single', build: () => emptyData('single') },
+  blank_multi:  { name: '🆕 새 다회기 과정 (빈 양식)', mode: 'multi', build: () => emptyData('multi') },
+
+  p_self: { name: '🎨 셀프 진단 컬러테라피 (성격·감정) · 단회', mode: 'single', build: () => ({
+    subject: '셀프 진단 컬러테라피, 컬러로 보는 성격과 감정',
+    teacher: DEFAULT_TEACHER, schedule: '2025. 12. 22. 오후 2시 ~ 4시', target: '', place: '',
+    materials: '빔프로젝트, 의자, 책상, HDMI 케이블, 진단 워크시트, 컬러테라피 교구재',
+    goalLabel: '강의목표', goal: '컬러를 활용해 자신에 대해 이해하고, 스스로의 감정과 내면을 인식하며, 올바른 소통법과 스트레스 해소 방법을 배웁니다.',
+    effectLabel: '강의효과', effect: '컬러를 통한 감정 해소와 정서적 안정, 자기이해의 향상을 경험합니다.',
+    targetMin: '120',
+    curriculum: [
+      row('5분', '강사 및 수업 프로그램 소개', '강사 소개\n컬러테라피 프로그램 소개'),
+      row('25분', '컬러 성격/심리 셀프 진단하기', '컬러 자기보고식 진단 검사 (성격)\n컬러 게임 (아이스브레이크)'),
+      row('60분', '컬러로 알아보는 성격 진단', '컬러테라피 정의\n컬러테라피 성격\n컬러로 표현하는 나의 마음 - 컬러링', '휴게 시간\n10분 포함'),
+      row('30분', '컬러로 알아보는 스트레스 해소', '컬러로 보는 색채 심리와 마음 위로\n컬러별 스트레스 해소방법 알아보기\n나와 잘 맞는 채움 컬러 확인하기')
+    ]
+  })},
+
+  p_healingmap: { name: '🌈 컬러힐링맵, 마음 회복 컬러테라피 · 5회기', mode: 'multi', build: () => ({
+    subject: '컬러힐링맵, 마음 회복 컬러테라피',
+    teacher: DEFAULT_TEACHER, schedule: '2026. 5. 6 ~ 6. 10 (매주 수요일 14:00~16:00) 총 5회기', target: '', place: '',
+    materials: '빔프로젝트, 의자, 책상, HDMI 케이블, 진단 워크시트, 컬러테라피 교구재',
+    goalLabel: '강의목표', goal: '색을 매개로 참여자 스스로 현재의 감정과 심리 상태를 자연스럽게 인식하고 이해하도록 돕는다. 편안하고 안전한 분위기에서 자유로운 표현을 지원한다.',
+    effectLabel: '강의효과', effect: '감정 인식과 자기 이해가 향상되며, 정서적 안정감과 자기조절 능력이 강화된다. 집단 내 공감과 소통이 증진되어 참여자 간 정서적 지지와 유대감이 형성된다.',
+    targetMin: '',
+    curriculum: [
+      row('1회기', '셀프 컬러 성격 진단', '컬러 성격의 기본 개념 이해 및 유형별 특징\n컬러 강점 기록 활동 및 컬러밸런스 게임'),
+      row('2회기', '컬러 마음 소통 활동', '컬러감정 코칭 기반 질문과 대답 (마음 소통 활동)\n컬러 보드게임 : 레인보우 프리즘'),
+      row('3회기', '컬러 심리/감정 진단하기', '컬러로 보는 색채 심리와 마음 위로, 스트레스 해소\n컬러 보드게임 : 내 마음의 보석함'),
+      row('4회기', '컬러 저널링 활동하기', '컬러로 쓰는 인생 기록 (저널링 활동)\n나의 인생 컬러 그래프'),
+      row('5회기', '컬러 힐링 활동하기', '비전 보드 만들기\n컬러로 쓰는 미래 일기 (컬러 플래닝)')
+    ]
+  })},
+
+  p_board5: { name: '🎨 컬러팔레트 셀프 진단 힐링 워크샵 (5단계) · 단회', mode: 'single', build: () => ({
+    subject: '컬러팔레트 | 컬러테라피로 나의 성격과 마음 진단하고 치유하기',
+    teacher: DEFAULT_TEACHER, schedule: '2026. 04. 28(화) 또는 04. 29(수) 오후 5시 ~',
+    target: '직장인 개인 참여형 힐링 워크샵 (20명 내외)', place: '',
+    materials: '빔프로젝터, 의자, 책상, HDMI 케이블, 필기도구',
+    goalLabel: '강의주제', goal: '컬러 성격 유형 및 심리 진단을 통한 자기 이해와 개인 맞춤형 힐링',
+    effectLabel: '강의효과', effect: '컬러테라피로 자신의 성격과 심리를 이해하고, 스트레스 해소와 자기 치유의 방법을 체험하여 일상 속 실질적인 힐링을 경험합니다.',
+    targetMin: '110',
+    curriculum: [
+      row('오프닝', '오프닝', '강사 소개 및 인사\n컬러테라피 프로그램 소개 및 진행 안내', '10분'),
+      row('1부', '컬러 성격 셀프 진단', '컬러 자기보고식 진단 검사 (나의 컬러 성격 찾기)\n컬러 게임을 활용한 아이스브레이크\n컬러테라피의 정의와 원리\n9가지 컬러로 보는 나의 성격 유형 및 강점', '50분'),
+      row('2부', '컬러로 알아보는 심리 진단', '컬러별 심리 특성과 감정 해석\n컬러로 보는 색채 심리와 마음 위로\n컬러별 스트레스 해소 방법 알아보기', '20분'),
+      row('3부', '컬러로 나를 응원하기', '컬러로 나를 위한 치유\n나와 잘 맞는 채움 컬러 확인하기\n니즈 컬러와 원츠 컬러 알아보기', '20분'),
+      row('마무리', '마무리', '페이퍼 퍼퓸 만들기 (아트테라피)', '10분')
+    ]
+  })},
+
+  p_scent: { name: '🌸 컬러센트 | 컬러 향수 조향 아트테라피 · 단회', mode: 'single', build: () => ({
+    subject: '컬러센트 | 컬러로 나를 들여다보는 마음 치유 아트테라피',
+    teacher: DEFAULT_TEACHER, schedule: '2025. 09. 13 10:00 ~ 12:00', target: '', place: '',
+    materials: '빔프로젝트, 의자, 책상, HDMI 케이블, 워크시트, 교구재, 향수 만들기 KIT',
+    goalLabel: '강의목표', goal: '컬러를 활용해 자신을 이해하고, 스스로의 감정과 내면을 이해하고 표현하는 방법을 배웁니다.',
+    effectLabel: '강의효과', effect: '컬러와 아트를 통한 감정 해소와 정서적 안정, 자기이해의 향상을 경험합니다.',
+    targetMin: '',
+    curriculum: [
+      row('10:00 ~ 10:50', '컬러로 알아보는 성격 진단', '컬러테라피 정의\n컬러카드(컬러링코드)를 통한 자신의 성격 및 성향 파악하기\n컬러 카드를 공유하며 소통하는 시간 가지기', '50분'),
+      row('11:00 ~ 11:15', '컬러로 알아보는 심리 진단', '9가지 컬러로 자신의 현재 심리 파악하기\n컬러별 스트레스 해소방법 알아보기\n나와 잘 맞는 채움 컬러 확인하기', '15분'),
+      row('11:15 ~ 11:50', '컬러 향수 조향 클래스', "자신에게 딱 맞는 컬러와 향기 올팩션\n나에게 필요한 향기로 만드는 '채움 컬러센트 퍼퓸'", '35분')
+    ]
+  })},
+
+  p_picturebook: { name: '📖 그림책 컬러테라피 (감정 힐링) · 단회', mode: 'single', build: () => ({
+    subject: '그림책 컬러테라피 | 컬러테라피로 마음 이해하기',
+    teacher: DEFAULT_TEACHER, schedule: '2025. 06. 28 14:00 ~ 16:00 (2시간)', target: '', place: '',
+    materials: '빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구, 워크시트, 교구재, 디퓨저 만들기 KIT',
+    goalLabel: '강의주제', goal: '그림책 속의 컬러와 향기로 만나는 감정 힐링 수업',
+    effectLabel: '강의효과', effect: '그림책과 창의 활동, 컬러와 향기를 통해 아이의 감정 인식과 표현을 돕고 정서적 성장을 지원하는 감정 힐링 수업입니다.',
+    targetMin: '100',
+    curriculum: [
+      row('14:00 ~ 14:50', '컬러와 그림책으로 마음 열기', '도입 인사 및 주제 소개\n내가 좋아하는 색은? - 컬러 감정 매칭 활동\n감정 색깔표로 나의 요즘 감정 찾기\n그림책 함께 읽기\n책 속 등장인물의 감정 이야기 나누기\n그림책 감상문 작성', '50분'),
+      row('15:00 ~ 15:50', '향기와 표현으로 감정 마무리', '아로마 향기 체험\n감정 정리 활동\n나의 감정을 담아보는 창작 활동 - 컬러아트테라피\n컬러 아로마 디퓨저 만들기 (감정을 담아요)', '50분')
+    ]
+  })},
+
+  p_moru: { name: '🧸 컬러팔레트 성격 이해 + 아트테라피 · 1회 60분 특강', mode: 'single', build: () => ({
+    subject: '컬러팔레트 | 컬러테라피 성격 이해하기',
+    teacher: DEFAULT_TEACHER, schedule: '1회 60분 특강', target: '', place: '',
+    materials: '빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구, 워크시트, 아트 준비물',
+    goalLabel: '강의주제', goal: '컬러로 만나는 감정 힐링 수업으로 마음을 알아보고, 아트테라피로 자신을 표현하는 감성 테라피 클래스',
+    effectLabel: '강의효과', effect: '컬러로 성격을 이해하고, 정서 표현, 창의력 향상, 자기표현력 증진을 하는 힐링 감성 테라피 클래스입니다.',
+    targetMin: '60',
+    curriculum: [
+      row('40분', '컬러 성격 진단 및 분석', '도입 인사 및 주제 소개\n컬러 성격 진단하기\n컬러 성격 이해하기\n컬러 별 커뮤니케이션 이해'),
+      row('20분', '컬러아트테라피 (택1)', '나의 감정을 담아보는 창작 활동 - 컬러아트테라피\n컬러모루 걱정인형 키링 / 컬러 하바리움 볼펜 만들기')
+    ]
+  })},
+
+  p_family: { name: '👨‍👩‍👧 컬러테라피 학부모 연수 · 단회', mode: 'single', build: () => ({
+    subject: '컬러테라피 학부모 연수 - 나와 우리 아이를 색다르게 이해하는 방법',
+    teacher: DEFAULT_TEACHER, schedule: '2025. 10. 20. 10:00 ~ 12:00 (2시간)', target: '학부모', place: '',
+    materials: '빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구',
+    goalLabel: '강의주제', goal: '컬러 성격·심리로 이해하는 부모와 자녀 소통법',
+    effectLabel: '강의효과', effect: '컬러 성격과 심리를 통해 부모-자녀 간 소통 방법을 이해하고, 학부모님들의 정서적 힐링과 자기 돌봄의 시간을 경험할 수 있습니다.',
+    targetMin: '100',
+    curriculum: [
+      row('10:00 ~ 10:50', '컬러테라피와 컬러 성격', '컬러테라피 정의\n레드 아이와 블루 부모\n9가지 컬러 성격 패턴\n컬러 성격 별 소통 방법', '50분'),
+      row('11:00 ~ 11:50', '컬러 심리와 힐링', '9가지 컬러로 보는 나의 컬러 심리\n스트레스 해소 컬러\n컬러별 마음 치유 방법', '50분')
+    ]
+  })},
+
+  p_career: { name: '🧭 컬러로 알아보는 진로 적성 코칭 · 2회차', mode: 'multi', build: () => ({
+    subject: '컬러로 알아보는 진로 적성 코칭 강의',
+    teacher: '이새봄 | 원주 채아힐링센터 대표 강사', schedule: '2025. 7. 29(화) / 7. 31(목) 오후 13:30 ~ 15:30',
+    target: '중·고등학생 16명', place: '',
+    materials: '빔프로젝트, 의자, 책상, HDMI 케이블, 워크시트, 필기도구',
+    goalLabel: '강의주제', goal: '컬러를 활용해 학생의 학습 성향과 진로를 탐색하고, 발표와 스피치로 표현하는 진로 코칭',
+    effectLabel: '강의효과', effect: '컬러를 활용해 학생의 학습 성향과 진로를 탐색하고, 이를 발표와 스피치로 표현하며 자기이해와 진로 역량을 함께 키울 수 있습니다.',
+    targetMin: '',
+    curriculum: [
+      row('1회차', '컬러 진로/적성 코칭 - 나를 이해하고, 진로를 탐색하다', '컬러링코드로 컬러로 자기 소개하기 (아이스브레이킹)\n컬러 학습 성향 진단\n나의 학습 컬러 & 성격 컬러 찾기\n컬러별 성향에 맞는 직업군 매칭\n나의 강점과 장점 탐색\n나에게 맞는 학습 방법과 진로 키워드 정리', '컬러\n진로적성'),
+      row('2회차', '진로 발표 & 스피치 코칭 - 말하는 나, 진로를 표현하다', '컬러 직업가치관 검사\n진로 성향에 맞는 직업/인물 탐색\n인물 검색 등록하기\n컬러 문장 완성 검사 / 자기소개와 진로 발표문 작성\n말하는 자세, 시선처리, 발표 연습하기\n스피치 실전 발표 및 피드백', '진로\n스피치')
+    ]
+  })},
+
+  p_mbti_scent: { name: '🧪 MBTI 조향 힐링 클래스 · 단회', mode: 'single', build: () => ({
+    subject: 'MBTI 조향 힐링 클래스',
+    teacher: DEFAULT_TEACHER, schedule: '2025. 11. 5', target: '', place: '',
+    materials: '빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구, MBTI 사전 검사, 조향 키트',
+    goalLabel: '강의주제', goal: 'MBTI로 성격과 선호를 알아보고, 자신의 취향을 담은 힐링 향수 조향 프로그램을 진행합니다.',
+    effectLabel: '강의효과', effect: '나를 이해하고 다른 사람을 이해하면서 몸과 마음을 힐링합니다.',
+    targetMin: '100',
+    curriculum: [
+      row('50분', 'MBTI 분석하기', 'MBTI 선호지표 설명 (E/I, S/N, T/F, J/P)\nMBTI 셀프 체크\n16유형별 강점과 효과적인 커뮤니케이션 방법\nMBTI별 스트레스 해소방법'),
+      row('30분', 'MBTI 힐링 향수 조향', '향수 만드는 방법 안내\n원하는 향으로 조향하기\n각자의 향수 만들기'),
+      row('20분', 'MBTI 그룹활동', '공통된 유형별 그룹활동\n공감과 이해 그리고 서로 다름을 인지')
+    ]
+  })},
+
+  p_mbti_compass: { name: '🧭 MBTI+컬러테라피 인성 나침반 여행 · 단회', mode: 'single', build: () => ({
+    subject: 'MBTI와 컬러테라피로 떠나는 인성 나침반 여행',
+    teacher: DEFAULT_TEACHER, schedule: '2026. 7. 21(화) 오후 2시 ~', target: '교직원 · 동료', place: '',
+    materials: '빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구, MBTI 사전 검사, 조향 키트',
+    goalLabel: '강의주제', goal: 'MBTI와 컬러로 나의 성격과 선호를 이해하고, 동료 및 아이들과의 차이를 존중하는 관계 역량을 다집니다. 자신의 취향을 담은 힐링 향수 조향으로 정서적 안정과 자기돌봄의 시간을 경험합니다.',
+    effectLabel: '강의효과', effect: '자기이해를 바탕으로 소진(번아웃)을 예방하고 정서적 회복력을 높입니다. 성격 차이에 대한 이해를 교사·동료·유아와의 소통과 생활지도에 실질적으로 활용합니다.',
+    targetMin: '',
+    curriculum: [
+      row('사전 검사', 'MBTI 사전 정식 온라인 검사 진행', 'MBTI 개별 검사 진행'),
+      row('14:00 ~ 14:30', 'MBTI 분석하기', 'MBTI 선호지표 설명 (E/I, S/N, T/F, J/P)\n16유형별 강점과 효과적인 커뮤니케이션 방법', '30분'),
+      row('14:30 ~ 14:50', '컬러 성격 분석하기', '7가지 컬러 성격 유형 이해\n컬러별 효과적인 커뮤니케이션 방법', '20분'),
+      row('15:00 ~ 15:50', 'MBTI 힐링 향수 조향', '향수 만드는 방법 안내\n원하는 향으로 조향하기\n각자의 향수 만들기', '50분')
+    ]
+  })},
+
+  p_team_board: { name: '🏢 컬러리케이션 | 보드게임 소통 팀빌딩 워크샵 · 기업', mode: 'single', build: () => ({
+    subject: '컬러리케이션 | 컬러테라피 보드게임 소통 팀빌딩 워크샵',
+    teacher: DEFAULT_TEACHER, schedule: '', target: '기업 임직원', place: '',
+    materials: '빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구',
+    goalLabel: '강의주제', goal: '컬러로 성격 및 심리진단 후, 팀 구성원 간의 소통 능력을 향상시키고 효과적인 팀워크를 구축하는 방법을 탐구합니다.',
+    effectLabel: '강의효과', effect: '컬러로 심리적 안정을 얻고, 서로 간의 소통을 통한 팀워크를 증진합니다.',
+    targetMin: '150',
+    curriculum: [
+      row('09:00 ~ 09:50', '컬러테라피와 색채심리', '컬러테라피 정의\n9가지 컬러로 보는 나의 컬러 심리\n컬러별 스트레스 해소 방법', '50분'),
+      row('10:00 ~ 10:50', '컬러 성격 패턴', '9가지 컬러 성격 패턴\n컬러 성격 별 소통 방법', '50분'),
+      row('11:00 ~ 11:50', '컬러테라피 힐링 보드게임 : 레인보우프리즘', '보드게임 진행 안내\n컬러테라피 보드게임 진행', '50분')
+    ]
+  })},
+
+  p_team_newbie: { name: '🏢 리컬러베이션 | 신입 직원 역량 강화·힐링 소통 (종일) · 기업', mode: 'single', build: () => ({
+    subject: '리컬러베이션 | 신입 직원 역량 강화 및 힐링 소통 교육',
+    teacher: DEFAULT_TEACHER, schedule: '', target: '신입 직원', place: '',
+    materials: '빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구, 워크시트(교재)',
+    goalLabel: '강의주제', goal: '신입 사원의 회사 적응 기초 교육과 힐링 소통 팀빌딩 교육',
+    effectLabel: '강의효과', effect: '컬러 성향을 활용한 원활한 소통과 직장 내 예절을 익히고, 실전 적용 및 힐링을 경험하는 교육 과정',
+    targetMin: '',
+    curriculum: [
+      row('09:00', '컬러 성격 패턴', 'MBTI만큼 잘 맞는 컬러 성향 패턴\n컬러링코드 | 나로 말하자면?\n자가보고식 진단\n컬러 소통 방법', '1시간'),
+      row('10:30', '커뮤니케이션과 직장예절', '명확한 의사소통 스킬 (경청과 업무 보고)\n메일, 전화, 대면 소통 시의 예의\n갈등 예방 및 해결을 위한 소통방법', '1시간'),
+      row('12:00', '중식', '', '1시간'),
+      row('13:00', '컬러테라피 보드게임', '컬러테라피 힐링 소통 보드게임\n소통 연습 레인보우프리즘', '2시간'),
+      row('15:00', '비즈니스 매너와 직장예절', '기본적인 인사예절과 태도\n복장 및 신체 언어 관리\n업무환경 내 공공 에티켓', '2시간')
+    ]
+  })}
+};
+
+// ---------- 선택형 예시 문구 라이브러리 (PDF 자료 기반) ----------
+const SNIPPETS = {
+  materials: [
+    '빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구',
+    '빔프로젝트, 의자, 책상, HDMI 케이블, 진단 워크시트, 컬러테라피 교구재',
+    '빔프로젝트, 의자, 책상, HDMI 케이블, 워크시트, 교구재, 향수 만들기 KIT',
+    '빔프로젝트, 의자, 책상, HDMI 케이블, 워크시트, 필기도구, 보드게임',
+    '빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구, MBTI 사전 검사, 조향 키트',
+    '빔프로젝트, 의자, 책상, HDMI 케이블, 필기도구, 워크시트, 모루 공예 준비물'
+  ],
+  goal: [
+    '컬러로 성격 및 심리진단 후, 스트레스를 해소하는 방법을 탐구하며, 자신에게 필요한 채움컬러로 컬러아트테라피 프로그램을 진행합니다.',
+    '컬러를 활용해 자신을 이해하고, 스스로의 감정과 내면을 이해하고 표현하는 방법을 배웁니다.',
+    '컬러로 성격 및 심리진단 후, 팀 구성원 간의 소통 능력을 향상시키고 효과적인 팀워크를 구축하는 방법을 탐구합니다.',
+    '컬러 성격 유형 및 심리 진단을 통한 자기 이해와 개인 맞춤형 힐링',
+    'MBTI로 성격과 선호를 알아보고, 자신의 취향을 담은 힐링 향수 조향 프로그램을 진행합니다.',
+    '컬러 성격·심리로 이해하는 부모와 자녀 소통법',
+    '컬러로 보는 성격 진단과 심리 진단 및 스트레스 해소'
+  ],
+  effect: [
+    '컬러로 심리적 안정을 통해서 몸과 마음을 힐링합니다.',
+    '컬러로 심리적 안정을 얻고, 서로 간의 소통을 통한 팀워크를 증진합니다.',
+    '컬러와 아트를 통한 감정 해소와 정서적 안정, 자기이해의 향상을 경험합니다.',
+    '컬러를 통한 감정 해소와 정서적 안정, 자기이해의 향상을 경험합니다.',
+    '나를 이해하고 다른 사람을 이해하면서 몸과 마음을 힐링합니다.',
+    '컬러로 심리적 안정을 얻고, 서로 간의 소통을 향상합니다.'
+  ]
+};
+
+// 프로그램 내용 예시 블록 (커리큘럼에 새 순서로 추가)
+const BLOCKS = [
+  row('5분', '강사 및 수업 프로그램 소개', '강사 소개\n컬러테라피 프로그램 소개'),
+  row('', '컬러 성격/심리 셀프 진단하기', '컬러 자기보고식 진단 검사 (성격/심리)\n컬러 게임 (아이스브레이크)'),
+  row('', '컬러테라피와 색채심리', '컬러테라피 정의\n9가지 컬러로 보는 나의 컬러 심리\n컬러별 스트레스 해소 방법'),
+  row('', '컬러 성격 패턴', '9가지 컬러 성격 패턴\n컬러 성격 별 소통 방법'),
+  row('', '컬러테라피 힐링 보드게임 : 레인보우프리즘', '보드게임 진행 안내\n컬러테라피 보드게임 진행'),
+  row('', '내 마음의 보석함 (감정 공유 보드게임)', '오늘의 마음 컬러\n내 마음의 보석함 (감정 공유 컬러 보드게임)\n컬러별 마음 치유 방법'),
+  row('', 'MBTI 분석하기', 'MBTI 선호지표 설명 (E/I, S/N, T/F, J/P)\n16유형별 강점과 효과적인 커뮤니케이션 방법\nMBTI별 스트레스 해소방법'),
+  row('', 'MBTI 힐링 향수 조향', '향수 만드는 방법 안내\n원하는 향으로 조향하기\n각자의 향수 만들기'),
+  row('', '컬러센트 향수 조향 클래스', "자신에게 딱 맞는 컬러와 향기 올팩션\n나에게 필요한 향기로 만드는 '채움 컬러센트 퍼퓸'"),
+  row('', '컬러아트테라피 (택1)', '나의 감정을 담아보는 창작 활동 - 컬러아트테라피\n컬러모루 걱정인형 키링 / 컬러 하바리움 볼펜 만들기'),
+  row('', '커뮤니케이션과 직장예절', '명확한 의사소통 스킬 (경청과 업무 보고)\n메일, 전화, 대면 소통 시의 예의\n갈등 예방 및 해결을 위한 소통방법'),
+  row('', '비즈니스 매너와 직장예절', '기본적인 인사예절과 태도\n복장 및 신체 언어 관리\n업무환경 내 공공 에티켓')
+];
+
+// ---------- 상태 ----------
+let state = { mode: 'single', data: PRESETS.p_self.build() };
+
+// ---------- 초기화 ----------
+function init() {
+  const sel = document.getElementById('templateSelect');
+  Object.keys(PRESETS).forEach(key => {
+    const opt = document.createElement('option');
+    opt.value = key; opt.textContent = PRESETS[key].name;
+    sel.appendChild(opt);
+  });
+  sel.value = 'p_self';
+  populatePickers();
+
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) { try { const p = JSON.parse(saved); if (p && p.data) state = p; } catch (e) {} }
+
+  bindEvents();
+  refreshAll();
+}
+
+function populatePickers() {
+  document.querySelectorAll('.snippet').forEach(sel => {
+    const list = SNIPPETS[sel.dataset.snip] || [];
+    sel.innerHTML = '<option value="">💬 예시 문구…</option>' +
+      list.map((t, i) => `<option value="${i}">${esc(t.length > 22 ? t.slice(0, 22) + '…' : t)}</option>`).join('');
+  });
+  const bp = document.getElementById('blockPick');
+  bp.innerHTML = '<option value="">＋ 예시 블록 추가…</option>' +
+    BLOCKS.map((b, i) => `<option value="${i}">${esc(b.title)}</option>`).join('');
+}
+
+function refreshAll() {
+  ['schedDate','schedStart','schedEnd'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  fillFormFromState();
+  setMode(state.mode, true);
+  renderCurriculum();
+  render();
+}
+
+function bindEvents() {
+  document.getElementById('templateSelect').addEventListener('change', e => {
+    const p = PRESETS[e.target.value];
+    if (!p) return;
+    if (hasContent() && !confirm('현재 내용을 선택한 템플릿으로 교체할까요? (저장하지 않은 내용은 사라집니다)')) {
+      e.target.value = state.mode === 'single' ? 'blank_single' : 'blank_multi';
+      return;
+    }
+    state.mode = p.mode; state.data = p.build();
+    refreshAll();
+  });
+
+  document.getElementById('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    setMode(b.dataset.mode); render();
+  });
+
+  document.querySelectorAll('[data-bind]').forEach(el => {
+    el.addEventListener('input', () => { state.data[el.dataset.bind] = el.value; render(); });
+  });
+  document.querySelectorAll('[data-labelbind]').forEach(el => {
+    el.addEventListener('change', () => { state.data[el.dataset.labelbind] = el.value; render(); });
+  });
+
+  document.querySelectorAll('.snippet').forEach(sel => {
+    sel.addEventListener('change', () => {
+      if (sel.value === '') return;
+      const text = SNIPPETS[sel.dataset.snip][+sel.value];
+      const key = sel.dataset.target;
+      const cur = (state.data[key] || '').trim();
+      if (cur && !confirm('현재 입력된 내용을 선택한 예시 문구로 바꿀까요?')) { sel.value = ''; return; }
+      state.data[key] = text;
+      const field = document.querySelector(`[data-bind="${key}"]`);
+      if (field) field.value = text;
+      sel.value = ''; render();
+    });
+  });
+
+  document.getElementById('blockPick').addEventListener('change', e => {
+    if (e.target.value === '') return;
+    const b = BLOCKS[+e.target.value];
+    state.data.curriculum.push(row(b.time, b.title, b.details, b.note));
+    e.target.value = '';
+    renderCurriculum(); render();
+  });
+
+  document.getElementById('addCurr').addEventListener('click', () => {
+    const t = state.mode === 'multi' ? `${state.data.curriculum.length + 1}회기` : '';
+    state.data.curriculum.push(row(t, ''));
+    renderCurriculum(); render();
+  });
+
+  document.getElementById('btnEven').addEventListener('click', evenDistribute);
+
+  ['schedDate','schedStart','schedEnd'].forEach(id => {
+    document.getElementById(id).addEventListener('input', composeSchedule);
+  });
+
+  document.getElementById('btnNew').addEventListener('click', () => {
+    if (hasContent() && !confirm('새 프로그램을 시작할까요? 저장하지 않은 내용은 사라집니다.')) return;
+    state.data = emptyData(state.mode);
+    document.getElementById('templateSelect').value = state.mode === 'single' ? 'blank_single' : 'blank_multi';
+    refreshAll();
+  });
+
+  document.getElementById('btnSave').addEventListener('click', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    flash('btnSave', '✅ 저장됨');
+  });
+  document.getElementById('btnWord').addEventListener('click', exportWord);
+  document.getElementById('btnExport').addEventListener('click', exportJSON);
+  document.getElementById('btnImport').addEventListener('click', () => document.getElementById('fileInput').click());
+  document.getElementById('fileInput').addEventListener('change', importJSON);
+  document.getElementById('btnPrint').addEventListener('click', () => window.print());
+}
+
+function setMode(mode, silent) {
+  state.mode = mode;
+  document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  if (!silent) renderCurriculum();
+}
+
+function fillFormFromState() {
+  document.querySelectorAll('[data-bind]').forEach(el => { el.value = state.data[el.dataset.bind] || ''; });
+  document.querySelectorAll('[data-labelbind]').forEach(el => { el.value = state.data[el.dataset.labelbind] || el.options[0].value; });
+}
+
+function renderCurriculum() {
+  const wrap = document.getElementById('currList');
+  wrap.innerHTML = '';
+  const multi = state.mode === 'multi';
+  const tph = multi ? '예: 1회기' : '예: 10:00 ~ 10:50 또는 50분';
+  state.data.curriculum.forEach((r, i) => {
+    const div = document.createElement('div');
+    div.className = 'curr-row';
+    div.innerHTML = `
+      <div class="curr-head">
+        <span class="curr-no">순서 ${i+1}</span>
+        <div class="row-move">
+          <button class="icon-btn mv" data-i="${i}" data-d="-1" title="위로">▲</button>
+          <button class="icon-btn mv" data-i="${i}" data-d="1" title="아래로">▼</button>
+          <button class="icon-btn row-del" data-i="${i}" title="삭제">×</button>
+        </div>
+      </div>
+      <div class="curr-grid">
+        <div>
+          <span class="mini-label">${multi ? '회기/구분' : '시간/구분'}</span>
+          <input data-i="${i}" data-k="time" placeholder="${tph}" value="${esc(r.time)}">
+          <span class="mini-label" style="margin-top:8px">비고</span>
+          <input data-i="${i}" data-k="note" placeholder="예: 50분 / 휴게 포함" value="${esc(r.note)}">
+        </div>
+        <div>
+          <span class="mini-label">▶ 프로그램 제목</span>
+          <input data-i="${i}" data-k="title" placeholder="예: 컬러로 알아보는 성격 진단" value="${esc(r.title)}">
+          <span class="mini-label" style="margin-top:8px">세부 내용 (한 줄에 하나씩)</span>
+          <textarea data-i="${i}" data-k="details" placeholder="컬러테라피 정의&#10;컬러테라피 성격&#10;컬러로 표현하는 나의 마음">${esc(r.details)}</textarea>
+        </div>
+      </div>`;
+    wrap.appendChild(div);
+  });
+
+  wrap.querySelectorAll('input, textarea').forEach(el => {
+    el.addEventListener('input', () => { state.data.curriculum[el.dataset.i][el.dataset.k] = el.value; render(); });
+  });
+  wrap.querySelectorAll('.mv').forEach(b => {
+    b.addEventListener('click', () => {
+      const i = +b.dataset.i, d = +b.dataset.d, j = i + d, c = state.data.curriculum;
+      if (j < 0 || j >= c.length) return;
+      [c[i], c[j]] = [c[j], c[i]];
+      renderCurriculum(); render();
+    });
+  });
+  wrap.querySelectorAll('.row-del').forEach(b => {
+    b.addEventListener('click', () => {
+      if (state.data.curriculum.length <= 1) { alert('최소 1개 순서는 필요합니다.'); return; }
+      state.data.curriculum.splice(+b.dataset.i, 1);
+      renderCurriculum(); render();
+    });
+  });
+}
+
+// ---------- 일정 날짜/시간 자동 조합 ----------
+function composeSchedule() {
+  const dv = document.getElementById('schedDate').value;
+  const sv = document.getElementById('schedStart').value;
+  const ev = document.getElementById('schedEnd').value;
+  if (!dv && !sv && !ev) return;
+  const parts = [];
+  if (dv) {
+    const dt = new Date(dv + 'T00:00:00');
+    const wk = ['일','월','화','수','목','금','토'][dt.getDay()];
+    parts.push(`${dt.getFullYear()}. ${dt.getMonth()+1}. ${dt.getDate()}. (${wk})`);
+  }
+  let tm = '';
+  if (sv && ev) tm = `${sv} ~ ${ev}`;
+  else if (sv) tm = sv;
+  else if (ev) tm = `~ ${ev}`;
+  if (tm) parts.push(tm);
+  const text = parts.join(' ');
+  state.data.schedule = text;
+  const f = document.querySelector('[data-bind="schedule"]');
+  if (f) f.value = text;
+  render();
+}
+
+// ---------- 시간 계산 & 오류 검증 ----------
+function parseClockRange(s) {
+  const m = (s || '').match(/(\d{1,2})\s*[:시]\s*(\d{1,2})?\s*[~\-–—]\s*(\d{1,2})\s*[:시]\s*(\d{1,2})?/);
+  if (!m) return null;
+  return { start: (+m[1]) * 60 + (+(m[2] || 0)), end: (+m[3]) * 60 + (+(m[4] || 0)) };
+}
+function parseDurationMin(timeStr, noteStr) {
+  const r = parseClockRange(timeStr);
+  if (r && r.end > r.start) return r.end - r.start;
+  const s = (timeStr || '') + ' ' + (noteStr || '');
+  const hh = s.match(/(\d+)\s*시간/), mm = s.match(/(\d+)\s*분/);
+  if (hh || mm) return (hh ? +hh[1] : 0) * 60 + (mm ? +mm[1] : 0);
+  return null;
+}
+function fmtMin(m) {
+  if (!m || m <= 0) return '0분';
+  const h = Math.floor(m / 60), mm = m % 60;
+  return ((h ? h + '시간' : '') + (mm ? (h ? ' ' : '') + mm + '분' : '')) || '0분';
+}
+function updateChecks() {
+  const rows = state.data.curriculum;
+  let sum = 0, counted = 0;
+  rows.forEach(r => { const d = parseDurationMin(r.time, r.note); if (d != null) { sum += d; counted++; } });
+  document.getElementById('calcTotal').textContent = counted ? `${fmtMin(sum)} (${counted}개 순서 인식)` : '자동 인식 불가';
+
+  const target = parseInt(state.data.targetMin, 10);
+  const diffEl = document.getElementById('calcDiff');
+  if (target && counted) {
+    const d = sum - target;
+    if (d === 0) { diffEl.textContent = '✅ 목표와 일치'; diffEl.className = 'calc-diff ok'; }
+    else if (d > 0) { diffEl.textContent = `▲ ${fmtMin(d)} 초과`; diffEl.className = 'calc-diff over'; }
+    else { diffEl.textContent = `▼ ${fmtMin(-d)} 부족`; diffEl.className = 'calc-diff under'; }
+  } else { diffEl.textContent = ''; diffEl.className = 'calc-diff'; }
+
+  renderValidation();
+}
+function validate() {
+  const d = state.data, issues = [];
+  if (!d.subject.trim()) issues.push(['err', '강의명이 비어 있습니다.']);
+  if (!d.teacher.trim()) issues.push(['warn', '강사가 비어 있습니다.']);
+  if (!d.schedule.trim() && !d.target.trim()) issues.push(['warn', '일정 또는 대상 중 하나는 입력을 권장합니다.']);
+  if (!d.materials.trim()) issues.push(['warn', '준비물이 비어 있습니다.']);
+  if (!d.goal.trim()) issues.push(['warn', `${d.goalLabel}이(가) 비어 있습니다.`]);
+  if (!d.effect.trim()) issues.push(['warn', `${d.effectLabel}이(가) 비어 있습니다.`]);
+
+  const clock = [];
+  d.curriculum.forEach((r, i) => {
+    if (!r.title.trim() && !r.details.trim()) issues.push(['warn', `순서 ${i+1}: 프로그램 내용이 비어 있습니다.`]);
+    if (!r.time.trim()) issues.push(['warn', `순서 ${i+1}: 시간/구분이 비어 있습니다.`]);
+    const rg = parseClockRange(r.time);
+    if (rg) {
+      if (rg.end <= rg.start) issues.push(['err', `순서 ${i+1}: 시작 시간이 종료 시간보다 늦거나 같습니다.`]);
+      clock.push({ i, rg });
+    }
+  });
+  for (let k = 1; k < clock.length; k++) {
+    if (clock[k].rg.start < clock[k-1].rg.end)
+      issues.push(['warn', `순서 ${clock[k-1].i+1}→${clock[k].i+1}: 시간이 겹칩니다.`]);
+  }
+  return issues;
+}
+function renderValidation() {
+  const issues = validate();
+  const wrap = document.getElementById('validList');
+  if (!issues.length) { wrap.innerHTML = '<div class="valid-item ok"><span>✅</span><span>발견된 문제가 없습니다.</span></div>'; return; }
+  const order = { err: 0, warn: 1 };
+  issues.sort((a, b) => order[a[0]] - order[b[0]]);
+  wrap.innerHTML = issues.map(x => `<div class="valid-item ${x[0]}"><span>${x[0]==='err'?'⛔':'⚠️'}</span><span>${esc(x[1])}</span></div>`).join('');
+}
+function evenDistribute() {
+  const n = state.data.curriculum.length;
+  const t = parseInt(state.data.targetMin, 10);
+  if (!t || t <= 0) { alert('먼저 목표 총시간(분)을 입력하세요.'); return; }
+  if (!confirm(`목표 ${t}분을 ${n}개 순서에 균등 배분할까요? 기존 시간 값이 바뀝니다.`)) return;
+  const base = Math.floor(t / n); let rem = t - base * n;
+  state.data.curriculum.forEach((r, i) => { r.time = `${base + (i < rem ? 1 : 0)}분`; });
+  renderCurriculum(); render();
+}
+
+// 정보 표 행 (미리보기 / Word 공용)
+function getInfoRows() {
+  const d = state.data;
+  return [
+    ['강의명', d.subject, true],
+    ['강　사', d.teacher, true],
+    ['일　정', d.schedule, false],
+    ['대　상', d.target, false],
+    ['장　소', d.place, false],
+    ['준비물', d.materials, false],
+    [d.goalLabel, d.goal, false],
+    [d.effectLabel, d.effect, false]
+  ].filter(r => r[2] || (r[1] && r[1].trim()));
+}
+
+// ---------- 미리보기 렌더 ----------
+function render() {
+  const doc = document.getElementById('doc');
+  const infoHTML = getInfoRows().map(r =>
+    `<tr><th>${esc(r[0])}</th><td>${r[1] && r[1].trim() ? esc(r[1]) : '<span class="muted">입력하세요</span>'}</td></tr>`
+  ).join('');
+
+  const currBody = state.data.curriculum.map(r => {
+    const lines = (r.details || '').split('\n').map(x => x.trim()).filter(Boolean);
+    const list = lines.length ? `<ul class="prog-list">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : '';
+    const title = r.title ? `<div class="prog-title">▶ ${esc(r.title)}</div>` : '';
+    const content = (title || list) ? title + list : '<span class="muted">프로그램 내용을 입력하세요</span>';
+    return `<tr><td class="time">${esc(r.time)}</td><td>${content}</td><td class="note">${esc(r.note)}</td></tr>`;
+  }).join('');
+
+  doc.innerHTML = `
+    <div class="doc-brand">채아힐링센터</div>
+    <div class="doc-title">강의계획서</div>
+    <div class="doc-badge"><span>${state.mode === 'multi' ? '다회기 과정' : '단회 (1회) 수업'}</span></div>
+    <table class="info"><tbody>${infoHTML}</tbody></table>
+    <div class="sec-title">강의 진행 안내</div>
+    <table class="curr">
+      <thead><tr><th style="width:92px">시 간</th><th>프로그램 내용</th><th style="width:80px">비 고</th></tr></thead>
+      <tbody>${currBody}</tbody>
+    </table>
+    <div class="doc-foot">마음이 머무는 색, 채아힐링센터 컬러테라피 💜</div>
+  `;
+  updateChecks();
+}
+
+// ---------- Word(.doc) 저장 ----------
+function wordHTML() {
+  const cell = 'border:1px solid #999;padding:6px 8px;vertical-align:top;font-size:11pt;';
+  const thS = cell + 'background:#F3ECF9;color:#5b4a78;font-weight:bold;text-align:center;';
+  const info = getInfoRows().map(r =>
+    `<tr><td style="${thS}width:90px;white-space:nowrap;">${esc(r[0])}</td><td style="${cell}">${esc(r[1] || '')}</td></tr>`
+  ).join('');
+  const curr = state.data.curriculum.map(r => {
+    const lines = (r.details || '').split('\n').map(x => x.trim()).filter(Boolean);
+    const list = lines.length ? `<ul style="margin:2px 0;padding-left:18px;">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : '';
+    const title = r.title ? `<div style="font-weight:bold;">▶ ${esc(r.title)}</div>` : '';
+    return `<tr>
+      <td style="${cell}text-align:center;white-space:nowrap;width:96px;">${esc(r.time)}</td>
+      <td style="${cell}">${title}${list}</td>
+      <td style="${cell}text-align:center;width:80px;font-size:10pt;color:#555;">${esc((r.note || '').replace(/\n/g,'<br>'))}</td>
+    </tr>`;
+  }).join('');
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>강의계획서</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+</head>
+<body style="font-family:'맑은 고딕','Malgun Gothic',sans-serif;color:#222;">
+  <p style="text-align:center;color:#9d8bb8;font-size:9pt;margin:0;">채아힐링센터</p>
+  <h1 style="text-align:center;color:#6E5A8A;letter-spacing:6px;font-size:24pt;margin:4px 0;">강의계획서</h1>
+  <p style="text-align:center;margin:0 0 12px;font-size:9pt;color:#6E5A8A;">${state.mode === 'multi' ? '다회기 과정' : '단회 (1회) 수업'}</p>
+  <table style="border-collapse:collapse;width:100%;margin-bottom:16px;">${info}</table>
+  <p style="text-align:center;font-weight:bold;color:#6E5A8A;letter-spacing:4px;font-size:13pt;margin:6px 0;">강의 진행 안내</p>
+  <table style="border-collapse:collapse;width:100%;">
+    <tr><td style="${thS}width:96px;">시 간</td><td style="${thS}">프로그램 내용</td><td style="${thS}width:80px;">비 고</td></tr>
+    ${curr}
+  </table>
+  <p style="text-align:center;margin-top:18px;color:#6b6478;font-size:9pt;">마음이 머무는 색, 채아힐링센터 컬러테라피</p>
+</body></html>`;
+}
+function exportWord() {
+  const blob = new Blob(['﻿' + wordHTML()], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const name = (state.data.subject || '강의계획서').replace(/[\\/:*?"<>|]/g, '_').slice(0, 60);
+  a.href = url; a.download = `${name}.doc`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- 내보내기 / 불러오기 (JSON) ----------
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const name = (state.data.subject || '강의계획서').replace(/[\\/:*?"<>|]/g, '_').slice(0, 60);
+  a.href = url; a.download = `${name}.json`; a.click();
+  URL.revokeObjectURL(url);
+}
+function importJSON(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const p = JSON.parse(reader.result);
+      if (!p.data || !Array.isArray(p.data.curriculum)) throw new Error('형식 오류');
+      state = p;
+      refreshAll();
+      alert('불러왔습니다 :)');
+    } catch (err) { alert('불러오기 실패: 올바른 강의계획서 JSON 파일이 아닙니다.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ---------- 유틸 ----------
+function esc(s) {
+  return (s == null ? '' : String(s))
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function hasContent() {
+  const d = state.data;
+  return !!(d.subject || d.goal || d.effect || d.schedule || d.curriculum.some(r => r.title || r.details));
+}
+function flash(id, txt) {
+  const b = document.getElementById(id); const old = b.textContent;
+  b.textContent = txt; setTimeout(() => b.textContent = old, 1400);
+}
+
+init();
+</script>
+</body>
+</html>
