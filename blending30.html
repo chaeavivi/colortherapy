@@ -22,7 +22,7 @@
         <!-- 헤더 -->
         <header class="text-center mb-5 pt-4">
             <h1 class="text-2xl font-bold text-gray-800">향수 블랜딩 계산기 <span class="text-purple-600">30ml</span></h1>
-            <p class="text-sm text-gray-500 mt-1">비율 → 향료 선택 → 향료별 스포이드 횟수까지 계산해드려요</p>
+            <p class="text-sm text-gray-500 mt-1">비율 → 향료 선택 → 향료별 용량(ml)까지 계산해드려요</p>
             <div class="mt-2 flex items-center justify-center gap-1.5">
                 <a href="blending.html" class="text-xs text-purple-600 border border-purple-200 bg-purple-50 hover:bg-purple-100 px-3 py-1 rounded-full transition">🧪 10ml</a>
                 <a href="blending20.html" class="text-xs text-purple-600 border border-purple-200 bg-purple-50 hover:bg-purple-100 px-3 py-1 rounded-full transition">🧪 20ml</a>
@@ -54,7 +54,7 @@
         <section class="mb-8">
             <h2 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
                 <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-500 text-white text-xs">3</span>
-                향료 양(스포이드 횟수) 계산
+                향료 양(실린더 ml) 계산
             </h2>
             <div id="result"></div>
         </section>
@@ -101,15 +101,15 @@
         // ─────────────────────────────────────────────
         //  블랜딩 기준값
         // ─────────────────────────────────────────────
-        // 스포이드 1회 ≈ 0.5ml → 총 59회 ≈ 29.5ml (30ml 병에 약 0.5ml 여유).
-        // 10ml판(총 19회)의 약 3배. 미들 29회 기준으로 총 59회.
-        const DROP_ML  = 0.5;    // 1회당 평균 용량(ml)
-        const DROP_TOL = 0.05;   // 1회당 오차(±ml)  → 실제 0.40~0.50ml
+        // 실린더로 ml 직접 계량. 총 29ml (30ml 병에 1ml 여유).
+        // 밸런스 7·15·7 / 프레시 9·14·6 / 리치 6·14·9 = 각 29ml (1ml 단위).
+        const DROP_ML  = 1;      // 1단위 = 1ml (실린더 계량)
+        const DROP_TOL = 0;      // 실린더 계량 → 오차 없음
 
         const BLENDS = {
-            balance: { label: '밸런스', sub: '탑·베이스 균형',    drops: { Top: 15, Middle: 29, Base: 15 } },
-            fresh:   { label: '프레시', sub: '탑 강조 · 상쾌',    drops: { Top: 18, Middle: 29, Base: 12 } },
-            rich:    { label: '리치',   sub: '베이스 강조 · 묵직', drops: { Top: 12, Middle: 29, Base: 18 } },
+            balance: { label: '밸런스', sub: '탑·베이스 균형',    drops: { Top: 7, Middle: 15, Base: 7 } },
+            fresh:   { label: '프레시', sub: '탑 강조 · 상쾌',    drops: { Top: 9, Middle: 14, Base: 6 } },
+            rich:    { label: '리치',   sub: '베이스 강조 · 묵직', drops: { Top: 6, Middle: 14, Base: 9 } },
         };
 
         const NOTES = [
@@ -195,7 +195,7 @@
                         <div class="flex items-center justify-between mb-1">
                             <div class="font-bold ${n.head} flex items-center gap-1.5">
                                 <span>${n.emoji}</span>${n.ko}
-                                <span class="text-[11px] font-medium text-gray-500">· 목표 ${drops[n.key]}회</span>
+                                <span class="text-[11px] font-medium text-gray-500">· 목표 ${drops[n.key]}ml</span>
                             </div>
                             <span class="text-[11px] text-gray-500">${cnt}종 선택</span>
                         </div>
@@ -218,7 +218,7 @@
                 resultEl.innerHTML = `
                     <div class="text-center text-gray-400 py-10 bg-white rounded-xl border border-gray-200">
                         <div class="text-3xl mb-2">🧪</div>
-                        위에서 향료를 선택하면<br>향료별 스포이드 횟수가 여기에 표시됩니다.
+                        위에서 향료를 선택하면<br>향료별 실린더 용량(ml)이 여기에 표시됩니다.
                     </div>`;
                 return;
             }
@@ -234,7 +234,7 @@
                         <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-gray-300 bg-white">
                             <span class="w-2 h-2 rounded-full ${n.dot}"></span>
                             <span class="font-semibold ${n.head}">${n.ko}</span>
-                            <span class="text-xs text-gray-400">목표 ${target}회 · 향료를 선택하세요</span>
+                            <span class="text-xs text-gray-400">목표 ${target}ml · 향료를 선택하세요</span>
                         </div>`;
                 }
 
@@ -244,8 +244,8 @@
                 const status = diff === 0
                     ? `<span class="text-emerald-600 font-semibold">✓ 딱 맞음</span>`
                     : diff < 0
-                        ? `<span class="text-amber-600 font-semibold">${-diff}회 부족</span>`
-                        : `<span class="text-red-500 font-semibold">${diff}회 초과</span>`;
+                        ? `<span class="text-amber-600 font-semibold">${-diff}ml 부족</span>`
+                        : `<span class="text-red-500 font-semibold">${diff}ml 초과</span>`;
 
                 const rows = frags.map(f => {
                     const c = counts[f.name] || 0;
@@ -258,10 +258,9 @@
                             <span class="ml-auto flex items-center gap-2">
                                 <span class="inline-flex items-center rounded-lg border border-gray-300 bg-white overflow-hidden">
                                     <button data-act="dec" data-name="${f.name}" class="step-btn w-8 h-8 text-lg text-gray-600 hover:bg-gray-100 leading-none">−</button>
-                                    <span class="w-10 text-center font-bold text-gray-900">${c}<span class="text-[11px] font-normal text-gray-400">회</span></span>
+                                    <span class="w-12 text-center font-bold text-gray-900">${c}<span class="text-[11px] font-normal text-gray-400">ml</span></span>
                                     <button data-act="inc" data-name="${f.name}" class="step-btn w-8 h-8 text-lg text-gray-600 hover:bg-gray-100 leading-none">+</button>
                                 </span>
-                                <span class="w-14 text-right text-xs text-gray-400">≈ ${fmt(ml)}ml</span>
                             </span>
                         </div>`;
                 }).join('');
@@ -271,7 +270,7 @@
                         <div class="flex items-center gap-1.5 mb-1 pb-1 border-b border-white/60">
                             <span>${n.emoji}</span>
                             <span class="font-bold ${n.head}">${n.ko}</span>
-                            <span class="text-xs text-gray-500">목표 ${target}회 · 배정 ${assigned}회</span>
+                            <span class="text-xs text-gray-500">목표 ${target}ml · 담음 ${assigned}ml</span>
                             <span class="text-xs ml-1">${status}</span>
                             <button data-fill="${n.key}" class="ml-auto text-[11px] text-purple-600 border border-purple-200 bg-white hover:bg-purple-50 px-2 py-0.5 rounded-full">고르게 채우기</button>
                         </div>
@@ -286,30 +285,30 @@
             const matched = totalAssigned === totalTarget;
 
             const totalNote = matched
-                ? `<span class="text-purple-100">목표 ${totalTarget}회와 일치 ✓</span>`
-                : `<span class="text-yellow-200">목표 ${totalTarget}회와 ${Math.abs(totalTarget - totalAssigned)}회 차이</span>`;
+                ? `<span class="text-purple-100">목표 ${totalTarget}ml와 일치 ✓</span>`
+                : `<span class="text-yellow-200">목표 ${totalTarget}ml와 ${Math.abs(totalTarget - totalAssigned)}ml 차이</span>`;
 
             resultEl.innerHTML = `
                 <div class="rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white p-4 mb-3 shadow-sm">
                     <div class="flex items-end justify-between">
                         <div>
-                            <div class="text-xs text-purple-100">총 스포이드</div>
-                            <div class="text-2xl font-bold">${totalAssigned}<span class="text-base font-medium">회</span></div>
+                            <div class="text-xs text-purple-100">총 용량</div>
+                            <div class="text-2xl font-bold">${totalAssigned}<span class="text-base font-medium">ml</span></div>
                             <div class="text-[11px] mt-0.5">${totalNote}</div>
                         </div>
                         <div class="text-right">
                             <div class="text-xs text-purple-100">예상 용량</div>
                             <div class="text-2xl font-bold">≈ ${fmt(est)}<span class="text-base font-medium">ml</span></div>
-                            <div class="text-[11px] text-purple-100 mt-0.5">오차범위 ±${fmt(tol)}ml</div>
+                            <div class="text-[11px] text-purple-100 mt-0.5">실린더 계량</div>
                         </div>
                     </div>
                     <div class="mt-2 pt-2 border-t border-white/25 text-[11px] text-purple-100">
-                        📏 실제 약 ${fmt(lo)} ~ ${fmt(hi)}ml · 스포이드 1회 ≈ ${DROP_ML}ml (30ml 병에 약 0.5ml 여유)
+                        📏 실린더로 ml 계량 · 총 29ml (30ml 병에 약 1ml 여유)
                     </div>
                 </div>
                 <div class="space-y-2">${noteBlocks}</div>
                 <button id="startCountBtn" class="w-full mt-3 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-base font-bold py-3 rounded-xl transition shadow-sm">
-                    🧪 넣으면서 카운팅 시작 <span class="font-normal text-emerald-100 text-sm">(총 ${totalAssigned}회)</span>
+                    🧪 실린더로 담기 시작 <span class="font-normal text-emerald-100 text-sm">(총 ${totalAssigned}ml)</span>
                 </button>
                 <div class="flex gap-2 mt-2">
                     <button id="autoBtn" class="flex-1 bg-purple-500 hover:bg-purple-600 active:scale-95 text-white text-sm font-medium py-2.5 rounded-lg transition">
@@ -336,11 +335,11 @@
                 if (!frags.length) return;
                 const assigned = frags.reduce((s, f) => s + (counts[f.name] || 0), 0);
                 totalAssigned += assigned;
-                lines.push(`\n${n.ko === '탑 노트' ? 'Top' : n.ko === '미들 노트' ? 'Middle' : 'Base'} ${drops[n.key]}회`);
-                frags.forEach(f => lines.push(`  - ${f.name} ${counts[f.name] || 0}회`));
+                lines.push(`\n${n.ko === '탑 노트' ? 'Top' : n.ko === '미들 노트' ? 'Middle' : 'Base'} ${drops[n.key]}ml`);
+                frags.forEach(f => lines.push(`  - ${f.name} ${counts[f.name] || 0}ml`));
             });
             const est = totalAssigned * DROP_ML, tol = totalAssigned * DROP_TOL;
-            lines.push(`\n총 ${totalAssigned}회 ≈ ${fmt(est)}ml (오차 ±${fmt(tol)}ml)`);
+            lines.push(`\n총 ${totalAssigned}ml`);
             return lines.join('\n');
         }
 
@@ -362,7 +361,7 @@
 
         function startCount() {
             const plan = planList();
-            if (!plan.length) { showToast('먼저 향료 횟수를 정해주세요'); return; }
+            if (!plan.length) { showToast('먼저 향료 용량을 정해주세요'); return; }
             plan.forEach(p => { if (added[p.name] == null) added[p.name] = 0; });
             roundCount = 0;
             mode = 'count';
@@ -397,7 +396,7 @@
                             <span class="font-bold text-gray-800">${p.name}</span>
                             <span class="text-[11px] text-gray-400">${p.noteKo} · ${p.family}</span>
                             ${done ? '<span class="ml-auto text-emerald-600 font-bold text-sm">✓ 완료</span>'
-                                   : `<span class="ml-auto text-sm ${over ? 'text-red-500' : 'text-gray-500'}">${p.target - a > 0 ? (p.target - a) + '회 남음' : ''}</span>`}
+                                   : `<span class="ml-auto text-sm ${over ? 'text-red-500' : 'text-gray-500'}">${p.target - a > 0 ? (p.target - a) + 'ml 남음' : ''}</span>`}
                         </div>
                         <div class="flex items-center gap-3">
                             <button data-cnt="dec" data-name="${p.name}"
@@ -405,7 +404,7 @@
                             <button data-cnt="inc" data-name="${p.name}"
                                 class="step-btn flex-1 h-14 rounded-xl ${done ? 'bg-emerald-500' : 'bg-purple-500'} text-white active:scale-95 transition flex items-center justify-center gap-2">
                                 <span class="text-2xl font-extrabold">${a}</span>
-                                <span class="text-base opacity-80">/ ${p.target}회</span>
+                                <span class="text-base opacity-80">/ ${p.target}ml</span>
                                 <span class="text-xs opacity-70 ml-1">${done ? '' : '＋ 탭'}</span>
                             </button>
                         </div>
@@ -416,8 +415,8 @@
                 <div class="sticky top-2 z-10 rounded-xl ${allDone ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' : 'bg-gradient-to-br from-purple-500 to-purple-600'} text-white p-4 mb-3 shadow">
                     <div class="flex items-center justify-between">
                         <div>
-                            <div class="text-xs text-white/80">${BLENDS[currentBlend].label} 블랜딩 · 넣는 중</div>
-                            <div class="text-2xl font-bold">${totalAdded} <span class="text-base font-medium text-white/80">/ ${totalTarget}회</span></div>
+                            <div class="text-xs text-white/80">${BLENDS[currentBlend].label} 블랜딩 · 담는 중</div>
+                            <div class="text-2xl font-bold">${totalAdded} <span class="text-base font-medium text-white/80">/ ${totalTarget}ml</span></div>
                         </div>
                         <div class="text-right">
                             <div class="text-xs text-white/80">현재 용량</div>
@@ -432,10 +431,10 @@
                 </div>
                 ${allDone ? '' : `
                 <button id="roundBtn" class="w-full mb-3 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-base font-bold py-3.5 rounded-xl transition shadow flex items-center justify-center gap-2">
-                    🔄 전체 한 바퀴 +1
-                    <span class="text-sm font-normal text-purple-100">(남은 ${remaining}종에 1회씩)</span>
+                    🔄 전체 +1ml
+                    <span class="text-sm font-normal text-purple-100">(남은 ${remaining}종에 1ml씩)</span>
                 </button>`}
-                <p class="text-xs text-gray-500 mb-2 px-1">🔄 <b>전체 한 바퀴 +1</b> 로 향료마다 1회씩 돌아가며 넣으세요. 개별 조절은 아래 +/− 로 하면 됩니다.</p>
+                <p class="text-xs text-gray-500 mb-2 px-1">🔄 <b>전체 +1ml</b> 로 향료마다 1ml씩 돌아가며 실린더에 담으세요. 개별 조절은 아래 +/− 로 하면 됩니다.</p>
                 <div class="space-y-2">${cards}</div>
                 <div class="flex gap-2 mt-4">
                     <button id="backBtn" class="flex-1 bg-white border border-gray-300 hover:bg-gray-100 active:scale-95 text-gray-700 text-sm font-medium py-2.5 rounded-lg transition">← 레시피 수정</button>
@@ -457,7 +456,7 @@
                 planList().forEach(p => {
                     if ((added[p.name] || 0) < p.target) { added[p.name] = (added[p.name] || 0) + 1; changed++; }
                 });
-                if (changed) { roundCount++; renderCount(); showToast(`${roundCount}바퀴째 · ${changed}종에 1회씩`); }
+                if (changed) { roundCount++; renderCount(); showToast(`${changed}종에 1ml씩 추가`); }
                 return;
             }
             if (e.target.closest('#backBtn')) { exitCount(); return; }
